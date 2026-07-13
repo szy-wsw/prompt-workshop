@@ -1,0 +1,45 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.btn-danger {
+  background: var(--color-danger);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.btn-gray {
+  background: #e2e2e2;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+input, textarea, select {
+  outline: none;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--color-primary) !important;
+}
