@@ -1,45 +1,189 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #a78bfa;
+  --color-primaryLight: #c4b5fd;
+  --color-primaryDark: #8b5cf6;
+  --color-bg: #f5f3ff;
+  --color-bgCard: #ffffff;
+  --color-bgHover: #ede9fe;
+  --color-text: #1f2937;
+  --color-textSecondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-shadow: 0 4px 20px rgba(167, 139, 250, 0.15);
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
+
 body {
-  background: var(--color-bg);
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background-color: var(--color-bg);
   color: var(--color-text);
-  transition: background 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+  line-height: 1.6;
 }
-.card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-.btn-primary {
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primaryLight);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 9px 16px;
-  cursor: pointer;
 }
-.btn-danger {
-  background: var(--color-danger);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 6px 12px;
+
+button {
   cursor: pointer;
-}
-.btn-gray {
-  background: #e2e2e2;
-  color: #333;
   border: none;
-  border-radius: 8px;
-  padding: 6px 12px;
-  cursor: pointer;
+  outline: none;
+  font-family: inherit;
 }
-input, textarea, select {
+
+input,
+textarea,
+select {
+  font-family: inherit;
   outline: none;
 }
-input:focus, textarea:focus, select:focus {
-  border-color: var(--color-primary) !important;
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.card {
+  background: var(--color-bgCard);
+  border-radius: 16px;
+  box-shadow: var(--color-shadow);
+  padding: 20px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primaryDark) 100%);
+  color: white;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(167, 139, 250, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--color-bgCard);
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--color-bgHover);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tag-primary {
+  background: rgba(167, 139, 250, 0.15);
+  color: var(--color-primaryDark);
+}
+
+.tag-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.tag-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+.tag-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bounce-in {
+  animation: bounceIn 0.4s ease-out;
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

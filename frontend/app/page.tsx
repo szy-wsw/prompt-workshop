@@ -1,140 +1,132 @@
-"use client"
-import { useEffect, useState } from "react"
-import { PromptItem } from "@/types/prompt"
-import { getPrompts, createPrompt, updatePrompt, delPrompt } from "@/lib/api/prompts"
-import Modal from "@/components/Modal"
-import PromptForm from "@/components/PromptForm"
-import ThemeToggle from "./ThemeToggle"
-import { useTheme } from "./useTheme"
+'use client'
 
-export default function Home() {
-  const { palette } = useTheme()
-  const [list, setList] = useState<PromptItem[]>([])
-  const [loading, setLoading] = useState(false)
-  const [search, setSearch] = useState("")
-  const pageSize = 5
-  const [page, setPage] = useState(1)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editItem, setEditItem] = useState<PromptItem | null>(null)
-  const [delConfirmId, setDelConfirmId] = useState<number | null>(null)
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { supabase, safeSupabaseQuery } from '@/lib/supabase'
+import { useThemeContext } from './ThemeProvider'
+import PromptCard from '@/components/PromptCard'
+import Skeleton from '@/components/Skeleton'
+import Empty from '@/components/Empty'
 
-  const loadData = async () => {
+export default function HomePage() {
+  const [prompts, setPrompts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { palette } = useThemeContext()
+
+  useEffect(() => {
+    fetchPrompts()
+  }, [])
+
+  const fetchPrompts = async () => {
     setLoading(true)
-    try {
-      const res = await getPrompts()
-      setList(res)
-    } catch (e) {
-      alert("加载列表失败")
-    } finally {
-      setLoading(false)
+    const result = await safeSupabaseQuery(
+      supabase.from('prompts').select('*, profiles(nickname, avatar_url)').eq('visibility', 'public').order('created_at', { ascending: false }).limit(6)
+    )
+    if (result.success && result.data) {
+      setPrompts(result.data as any[])
     }
-  }
-  useEffect(() => { loadData() }, [])
-
-  // 搜索过滤
-  const filterList = list.filter(item => item.title.includes(search) || item.category.includes(search))
-  // 分页切片
-  const pageTotal = Math.ceil(filterList.length / pageSize)
-  const pageData = filterList.slice((page - 1) * pageSize, page * pageSize)
-
-  // 新增提交
-  const handleAdd = async (val: Omit<PromptItem, "id" | "created_at">) => {
-    await createPrompt(val)
-    setModalOpen(false)
-    loadData()
-  }
-  // 编辑提交
-  const handleEdit = async (val: Omit<PromptItem, "id" | "created_at">) => {
-    if (!editItem) return
-    await updatePrompt(editItem.id, val)
-    setModalOpen(false)
-    setEditItem(null)
-    loadData()
-  }
-  // 删除
-  const handleDel = async (id: number) => {
-    await delPrompt(id)
-    setDelConfirmId(null)
-    loadData()
+    setLoading(false)
   }
 
-  // 打开新增弹窗
-  const openAdd = () => {
-    setEditItem(null)
-    setModalOpen(true)
-  }
-  // 打开编辑弹窗
-  const openEdit = (row: PromptItem) => {
-    setEditItem(row)
-    setModalOpen(true)
-  }
+  const features = [
+    { icon: '📝', title: '提示词管理', desc: '创建、编辑、管理您的AI提示词' },
+    { icon: '🌐', title: '公共论坛', desc: '分享和发现优质提示词' },
+    { icon: '❤️', title: '收藏点赞', desc: '收藏喜欢的提示词，支持作者' },
+    { icon: '📥', title: '批量导出', desc: '一键导出所有提示词为Markdown' }
+  ]
 
   return (
-    <div style={{ minHeight: "100vh", padding: "24px" }}>
-      {/* 顶部导航 */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h1 style={{ margin: 0 }}>AI 提示词管理工坊</h1>
-        <ThemeToggle />
+    <div className="fade-in">
+      <div
+        style={{
+          background: `linear-gradient(135deg, ${palette.primary}20 0%, ${palette.primaryLight}20 100%)`,
+          borderRadius: 24,
+          padding: '48px',
+          marginBottom: 32,
+          textAlign: 'center'
+        }}
+      >
+        <div style={{ fontSize: 64, marginBottom: 16 }}>🐾</div>
+        <h1 style={{ fontSize: 36, fontWeight: 700, marginBottom: 12, color: palette.text }}>
+          Prompt仓库
+        </h1>
+        <p style={{ fontSize: 16, color: palette.textSecondary, maxWidth: 600, margin: '0 auto' }}>
+          发现、分享、管理您的AI提示词。让AI更懂您，让创意无限可能。
+        </p>
+        <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center' }}>
+          <Link href="/forum">
+            <button className="btn-primary" style={{ padding: '12px 32px', fontSize: 16 }}>
+              🚀 探索论坛
+            </button>
+          </Link>
+          <Link href="/prompt">
+            <button className="btn-secondary" style={{ padding: '12px 32px', fontSize: 16 }}>
+              ✏️ 新建提示词
+            </button>
+          </Link>
+        </div>
       </div>
 
-      {/* 搜索+新增按钮行 */}
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20 }} className="card">
-        <input
-          placeholder="搜索标题/分类"
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1) }}
-          style={{ flex: 1, padding: 10, borderRadius: 8, border: `1px solid ${palette.border}` }}
-        />
-        <button onClick={openAdd} className="btn-primary">+ 新增提示词</button>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+        {features.map((item, index) => (
+          <div
+            key={index}
+            style={{
+              background: palette.bgCard,
+              borderRadius: 16,
+              padding: 24,
+              textAlign: 'center',
+              boxShadow: palette.shadow,
+              transition: 'transform 0.2s, box-shadow 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)'
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(167, 139, 250, 0.2)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = palette.shadow
+            }}
+          >
+            <div style={{ fontSize: 36, marginBottom: 12 }}>{item.icon}</div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: palette.text }}>
+              {item.title}
+            </h3>
+            <p style={{ fontSize: 13, color: palette.textSecondary }}>{item.desc}</p>
+          </div>
+        ))}
       </div>
 
-      {/* 列表卡片 */}
-      <div className="card">
-        <h3 style={{ margin: "0 0 16px 0" }}>全部提示词列表</h3>
-        {loading ? <p>加载中...</p> : pageData.length === 0 ? <p>暂无数据</p> : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {pageData.map(row => (
-              <div key={row.id} style={{ borderBottom: `1px solid ${palette.border}`, paddingBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div>
-                    <h4 style={{ margin: "0 0 6px 0" }}>{row.title}</h4>
-                    <p style={{ margin: "0 0 6px 0", color: palette.textMuted }}>{row.content}</p>
-                    <span style={{ fontSize: 13, color: palette.textMuted }}>
-                      分类：{row.category} | 创建时间：{row.created_at}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => openEdit(row)} className="btn-gray">编辑</button>
-                    <button onClick={() => setDelConfirmId(row.id)} className="btn-danger">删除</button>
-                  </div>
-                </div>
-                {/* 删除二次确认 */}
-                {delConfirmId === row.id && (
-                  <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
-                    <span>确定删除这条提示词？</span>
-                    <button onClick={() => handleDel(row.id)} className="btn-danger">确认删除</button>
-                    <button onClick={() => setDelConfirmId(null)} className="btn-gray">取消</button>
-                  </div>
-                )}
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h2 style={{ fontSize: 20, fontWeight: 600, color: palette.text }}>🔥 最新热门</h2>
+        <Link href="/forum" style={{ color: palette.primary, fontSize: 14 }}>
+          查看更多 →
+        </Link>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} className="card">
+              <Skeleton height={24} width="60%" style={{ marginBottom: 12 }} />
+              <Skeleton height={16} width="100%" style={{ marginBottom: 8 }} />
+              <Skeleton height={16} width="80%" style={{ marginBottom: 12 }} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Skeleton height={28} width={60} />
+                <Skeleton height={28} width={60} />
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* 分页 */}
-        {pageTotal > 1 && (
-          <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "center" }}>
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="btn-gray">上一页</button>
-            <span>第 {page} / {pageTotal} 页</span>
-            <button disabled={page >= pageTotal} onClick={() => setPage(p => p + 1)} className="btn-gray">下一页</button>
-          </div>
-        )}
-      </div>
-
-      {/* 新增/编辑弹窗 */}
-      <Modal open={modalOpen} title={editItem ? "编辑提示词" : "新增提示词"} onClose={() => setModalOpen(false)}>
-        <PromptForm init={editItem} onSubmit={editItem ? handleEdit : handleAdd} />
-      </Modal>
+            </div>
+          ))}
+        </div>
+      ) : prompts.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          {prompts.map(prompt => (
+            <PromptCard key={prompt.id} item={prompt} />
+          ))}
+        </div>
+      ) : (
+        <Empty icon="📭" title="暂无公开提示词" desc="快来发布第一个提示词吧！" />
+      )}
     </div>
   )
 }
