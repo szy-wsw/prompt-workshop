@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
@@ -17,24 +17,48 @@ export default function RegisterPage() {
   const router = useRouter()
   const { palette } = useThemeContext()
 
+  const nicknameError = useMemo(() => {
+    if (!nickname) return ''
+    return nickname.trim().length >= 2 ? '' : '昵称至少2位'
+  }, [nickname])
+
+  const emailError = useMemo(() => {
+    if (!email) return ''
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email) ? '' : '请输入有效的邮箱地址'
+  }, [email])
+
+  const passwordError = useMemo(() => {
+    if (!password) return ''
+    return password.length >= 6 ? '' : '密码至少6位'
+  }, [password])
+
+  const confirmError = useMemo(() => {
+    if (!confirmPassword) return ''
+    return confirmPassword === password ? '' : '两次密码输入不一致'
+  }, [confirmPassword, password])
+
+  const isValid = email && password && confirmPassword && nickname &&
+    !emailError && !passwordError && !confirmError && !nicknameError
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (password !== confirmPassword) {
-      showToast('两次密码输入不一致', 'error')
-      return
-    }
-
-    if (password.length < 6) {
-      showToast('密码长度至少6位', 'error')
+    
+    if (!isValid) {
+      if (nicknameError) showToast(nicknameError, 'error')
+      else if (emailError) showToast(emailError, 'error')
+      else if (passwordError) showToast(passwordError, 'error')
+      else if (confirmError) showToast(confirmError, 'error')
+      else showToast('请填写所有必填项', 'error')
       return
     }
 
     setLoading(true)
 
-    const result = await register(email, password, nickname)
+    const result = await register(email, password, nickname, confirmPassword)
+    
     if (result.success) {
-      showToast('注册成功', 'success')
+      showToast(result.message || '注册成功', 'success')
       router.push('/login')
     } else {
       showToast(result.message || '注册失败', 'error')
@@ -46,7 +70,7 @@ export default function RegisterPage() {
   return (
     <div className="fade-in" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh' }}>
       <div
-        className="card"
+        className="card bounce-in"
         style={{
           width: '100%',
           maxWidth: 420,
@@ -55,13 +79,13 @@ export default function RegisterPage() {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>🐾</div>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🐾</div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: palette.text }}>创建账户</h1>
           <p style={{ color: palette.textSecondary, marginTop: 8 }}>开始您的提示词之旅</p>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, color: palette.text }}>
               昵称
             </label>
@@ -69,24 +93,29 @@ export default function RegisterPage() {
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              placeholder="请输入昵称"
+              placeholder="请输入昵称（至少2位）"
               required
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: 12,
-                border: `2px solid ${palette.border}`,
+                border: `2px solid ${nicknameError ? palette.error : palette.border}`,
                 fontSize: 14,
                 background: palette.bg,
                 color: palette.text,
-                transition: 'border-color 0.2s'
+                transition: 'border-color 0.2s',
+                opacity: loading ? 0.6 : 1
               }}
-              onFocus={(e) => e.currentTarget.style.borderColor = palette.primary}
-              onBlur={(e) => e.currentTarget.style.borderColor = palette.border}
+              onFocus={(e) => { if (!nicknameError) e.currentTarget.style.borderColor = palette.primary }}
+              onBlur={(e) => e.currentTarget.style.borderColor = nicknameError ? palette.error : palette.border}
             />
+            {nicknameError && (
+              <div style={{ fontSize: 12, color: palette.error, marginTop: 4 }}>{nicknameError}</div>
+            )}
           </div>
 
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, color: palette.text }}>
               邮箱
             </label>
@@ -96,22 +125,27 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="请输入邮箱"
               required
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: 12,
-                border: `2px solid ${palette.border}`,
+                border: `2px solid ${emailError ? palette.error : palette.border}`,
                 fontSize: 14,
                 background: palette.bg,
                 color: palette.text,
-                transition: 'border-color 0.2s'
+                transition: 'border-color 0.2s',
+                opacity: loading ? 0.6 : 1
               }}
-              onFocus={(e) => e.currentTarget.style.borderColor = palette.primary}
-              onBlur={(e) => e.currentTarget.style.borderColor = palette.border}
+              onFocus={(e) => { if (!emailError) e.currentTarget.style.borderColor = palette.primary }}
+              onBlur={(e) => e.currentTarget.style.borderColor = emailError ? palette.error : palette.border}
             />
+            {emailError && (
+              <div style={{ fontSize: 12, color: palette.error, marginTop: 4 }}>{emailError}</div>
+            )}
           </div>
 
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, color: palette.text }}>
               密码
             </label>
@@ -121,19 +155,24 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="请输入密码（至少6位）"
               required
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: 12,
-                border: `2px solid ${palette.border}`,
+                border: `2px solid ${passwordError ? palette.error : palette.border}`,
                 fontSize: 14,
                 background: palette.bg,
                 color: palette.text,
-                transition: 'border-color 0.2s'
+                transition: 'border-color 0.2s',
+                opacity: loading ? 0.6 : 1
               }}
-              onFocus={(e) => e.currentTarget.style.borderColor = palette.primary}
-              onBlur={(e) => e.currentTarget.style.borderColor = palette.border}
+              onFocus={(e) => { if (!passwordError) e.currentTarget.style.borderColor = palette.primary }}
+              onBlur={(e) => e.currentTarget.style.borderColor = passwordError ? palette.error : palette.border}
             />
+            {passwordError && (
+              <div style={{ fontSize: 12, color: palette.error, marginTop: 4 }}>{passwordError}</div>
+            )}
           </div>
 
           <div style={{ marginBottom: 24 }}>
@@ -146,31 +185,36 @@ export default function RegisterPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="请再次输入密码"
               required
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: 12,
-                border: `2px solid ${palette.border}`,
+                border: `2px solid ${confirmError ? palette.error : palette.border}`,
                 fontSize: 14,
                 background: palette.bg,
                 color: palette.text,
-                transition: 'border-color 0.2s'
+                transition: 'border-color 0.2s',
+                opacity: loading ? 0.6 : 1
               }}
-              onFocus={(e) => e.currentTarget.style.borderColor = palette.primary}
-              onBlur={(e) => e.currentTarget.style.borderColor = palette.border}
+              onFocus={(e) => { if (!confirmError) e.currentTarget.style.borderColor = palette.primary }}
+              onBlur={(e) => e.currentTarget.style.borderColor = confirmError ? palette.error : palette.border}
             />
+            {confirmError && (
+              <div style={{ fontSize: 12, color: palette.error, marginTop: 4 }}>{confirmError}</div>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isValid}
             className="btn-primary"
             style={{
               width: '100%',
               padding: '14px',
               fontSize: 16,
-              opacity: loading ? 0.7 : 1,
-              cursor: loading ? 'not-allowed' : 'pointer'
+              opacity: loading || !isValid ? 0.6 : 1,
+              cursor: loading || !isValid ? 'not-allowed' : 'pointer'
             }}
           >
             {loading ? '注册中...' : '注册'}

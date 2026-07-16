@@ -92,6 +92,13 @@ a {
   transform: translateY(0);
 }
 
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .btn-secondary {
   background: var(--color-bgCard);
   color: var(--color-primary);
@@ -104,6 +111,11 @@ a {
 
 .btn-secondary:hover {
   background: var(--color-bgHover);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .tag {
@@ -186,4 +198,29 @@ a {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+.float-hover:hover {
+  transform: translateY(-6px);
+}
+
+.shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.pop-in {
+  animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
 }

@@ -8,6 +8,7 @@ import PromptCard from '@/components/PromptCard'
 import LoginPopup from '@/components/LoginPopup'
 import Skeleton from '@/components/Skeleton'
 import Empty from '@/components/Empty'
+import Link from 'next/link'
 
 export default function CollectionPage() {
   const [collections, setCollections] = useState<any[]>([])
@@ -36,18 +37,27 @@ export default function CollectionPage() {
 
   if (!user) {
     return (
-      <div className="fade-in" style={{ textAlign: 'center', padding: '60px 0' }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>❤️</div>
-        <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 12, color: palette.text }}>
-          需要登录才能查看收藏
-        </h2>
-        <button
-          className="btn-primary"
-          onClick={() => setShowLoginPopup(true)}
-        >
-          立即登录
-        </button>
-        <LoginPopup isOpen={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
+      <div className="fade-in" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div className="card bounce-in" style={{ textAlign: 'center', padding: '60px 40px', maxWidth: 480 }}>
+          <div style={{ fontSize: 72, marginBottom: 20 }}>❤️</div>
+          <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 12, color: palette.text }}>
+            需要登录才能查看收藏
+          </h2>
+          <p style={{ color: palette.textSecondary, marginBottom: 24, lineHeight: 1.6 }}>
+            登录后可以在论坛中收藏喜欢的提示词，打造您的专属灵感库~
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button className="btn-primary" onClick={() => setShowLoginPopup(true)}>
+              立即登录
+            </button>
+            <Link href="/register">
+              <button className="btn-secondary">
+                注册账户
+              </button>
+            </Link>
+          </div>
+          <LoginPopup isOpen={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
+        </div>
       </div>
     )
   }
@@ -62,21 +72,21 @@ export default function CollectionPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="card">
-              <Skeleton height={24} width="60%" style={{ marginBottom: 12 }} />
-              <Skeleton height={16} width="100%" style={{ marginBottom: 8 }} />
-              <Skeleton height={16} width="80%" style={{ marginBottom: 12 }} />
+            <div key={i} className="card" style={{ padding: 20 }}>
+              <Skeleton height={22} width="60%" style={{ marginBottom: 12 }} />
+              <Skeleton height={14} width="100%" style={{ marginBottom: 8 }} />
+              <Skeleton height={14} width="80%" style={{ marginBottom: 12 }} />
               <div style={{ display: 'flex', gap: 8 }}>
-                <Skeleton height={28} width={60} />
-                <Skeleton height={28} width={60} />
+                <Skeleton height={24} width={50} style={{ borderRadius: 12 }} />
+                <Skeleton height={24} width={50} style={{ borderRadius: 12 }} />
               </div>
             </div>
           ))}
         </div>
       ) : collections.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
           {collections.flat().map(prompt => (
             <PromptCard key={prompt.id} item={prompt} />
           ))}

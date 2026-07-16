@@ -7,7 +7,7 @@ import { ThemeProvider } from './ThemeProvider'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { supabase, safeSupabaseQuery } from '@/lib/supabase'
 import LoginPopup from '@/components/LoginPopup'
-import { showToast } from '@/components/Toast'
+import Toast, { showToast } from '@/components/Toast'
 import { useThemeContext } from './ThemeProvider'
 
 function UserMenu() {
@@ -16,6 +16,17 @@ function UserMenu() {
   const [showLoginPopup, setShowLoginPopup] = useState(false)
   const router = useRouter()
   const { palette } = useThemeContext()
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-user-menu]')) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -66,7 +77,7 @@ function UserMenu() {
 
   return (
     <>
-      <div style={{ position: 'relative' }}>
+      <div data-user-menu style={{ position: 'relative' }}>
         <button
           onClick={() => setShowMenu(!showMenu)}
           style={{
@@ -81,13 +92,16 @@ function UserMenu() {
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'transform 0.2s',
-            fontSize: 18
+            fontSize: 18,
+            overflow: 'hidden'
           }}
         >
           {user?.avatar_url ? (
             <img src={user.avatar_url} alt="头像" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
           ) : (
-            user ? user.nickname.charAt(0) : '👤'
+            <span style={{ color: 'white', fontWeight: 600 }}>
+              {user ? user.nickname.charAt(0) : '👤'}
+            </span>
           )}
         </button>
 
@@ -98,15 +112,21 @@ function UserMenu() {
               top: 50,
               right: 0,
               background: palette.bgCard,
-              borderRadius: 12,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-              minWidth: 160,
+              borderRadius: 16,
+              boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+              minWidth: 180,
               zIndex: 1000,
-              animation: 'fadeIn 0.2s ease'
+              animation: 'fadeIn 0.2s ease',
+              overflow: 'hidden',
+              border: `1px solid ${palette.border}`
             }}
           >
             {user ? (
               <>
+                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${palette.border}` }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: palette.text }}>{user.nickname}</div>
+                  <div style={{ fontSize: 12, color: palette.textSecondary, marginTop: 2 }}>{user.email}</div>
+                </div>
                 <button
                   onClick={handleProfile}
                   style={{
@@ -116,10 +136,15 @@ function UserMenu() {
                     background: 'none',
                     color: palette.text,
                     fontSize: 14,
-                    transition: 'background 0.2s'
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = palette.bgHover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  👤 个人中心
+                  <span>👤</span> 个人中心
                 </button>
                 <button
                   onClick={handleAvatarEdit}
@@ -130,10 +155,15 @@ function UserMenu() {
                     background: 'none',
                     color: palette.text,
                     fontSize: 14,
-                    transition: 'background 0.2s'
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = palette.bgHover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  🖼️ 修改头像
+                  <span>🖼️</span> 修改头像
                 </button>
                 <button
                   onClick={handlePasswordEdit}
@@ -144,10 +174,15 @@ function UserMenu() {
                     background: 'none',
                     color: palette.text,
                     fontSize: 14,
-                    transition: 'background 0.2s'
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = palette.bgHover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  🔑 修改密码
+                  <span>🔑</span> 修改密码
                 </button>
                 <button
                   onClick={handleExport}
@@ -158,12 +193,17 @@ function UserMenu() {
                     background: 'none',
                     color: palette.text,
                     fontSize: 14,
-                    transition: 'background 0.2s'
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = palette.bgHover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  📥 批量导出
+                  <span>📥</span> 批量导出
                 </button>
-                <hr style={{ border: `1px solid ${palette.border}`, margin: '4px 0' }} />
+                <div style={{ borderTop: `1px solid ${palette.border}`, margin: '4px 0' }} />
                 <button
                   onClick={handleLogout}
                   style={{
@@ -173,14 +213,22 @@ function UserMenu() {
                     background: 'none',
                     color: palette.error,
                     fontSize: 14,
-                    transition: 'background 0.2s'
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = palette.bgHover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  🚪 退出登录
+                  <span>🚪</span> 退出登录
                 </button>
               </>
             ) : (
               <>
+                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${palette.border}` }}>
+                  <div style={{ fontSize: 12, color: palette.textSecondary }}>尚未登录</div>
+                </div>
                 <button
                   onClick={() => { setShowMenu(false); setShowLoginPopup(true) }}
                   style={{
@@ -190,10 +238,15 @@ function UserMenu() {
                     background: 'none',
                     color: palette.text,
                     fontSize: 14,
-                    transition: 'background 0.2s'
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = palette.bgHover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  🔒 登录
+                  <span>🔒</span> 登录
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); router.push('/register') }}
@@ -204,10 +257,15 @@ function UserMenu() {
                     background: 'none',
                     color: palette.text,
                     fontSize: 14,
-                    transition: 'background 0.2s'
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = palette.bgHover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  📝 注册
+                  <span>📝</span> 注册
                 </button>
               </>
             )}
@@ -240,6 +298,31 @@ function FloatingButton() {
     router.push('/prompt')
   }
 
+  const handleExport = async () => {
+    setShowMenu(false)
+    if (!user) {
+      setShowLoginPopup(true)
+      return
+    }
+    const result = await safeSupabaseQuery(
+      supabase.from('prompts').select('*').eq('author_id', user.id)
+    )
+    if (result.success && result.data) {
+      const prompts = result.data as any[]
+      const content = prompts.map(p => `## ${p.title}\n\n${p.content}\n\n---`).join('\n\n')
+      const blob = new Blob([content], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `prompts_${Date.now()}.md`
+      a.click()
+      URL.revokeObjectURL(url)
+      showToast('批量导出成功', 'success')
+    } else {
+      showToast(result.error || '导出失败', 'error')
+    }
+  }
+
   return (
     <>
       <div
@@ -256,11 +339,11 @@ function FloatingButton() {
           <div
             style={{
               position: 'absolute',
-              bottom: 60,
+              bottom: 70,
               right: 0,
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              gap: 12,
               animation: 'fadeIn 0.2s ease'
             }}
           >
@@ -277,14 +360,17 @@ function FloatingButton() {
                 transition: 'transform 0.2s',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                cursor: 'pointer'
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px) scale(1.1)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(1)' }}
               title="新建提示词"
             >
               ✏️
             </button>
             <button
-              onClick={() => { setShowMenu(false); router.push('/prompt'); setTimeout(() => router.push('/prompt'), 0) }}
+              onClick={handleExport}
               style={{
                 width: 50,
                 height: 50,
@@ -296,11 +382,15 @@ function FloatingButton() {
                 transition: 'transform 0.2s',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                cursor: 'pointer',
+                border: `1px solid ${palette.border}`
               }}
-              title="我的提示词"
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px) scale(1.1)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(1)' }}
+              title="批量导出"
             >
-              📝
+              📥
             </button>
             <button
               onClick={scrollToTop}
@@ -315,8 +405,12 @@ function FloatingButton() {
                 transition: 'transform 0.2s',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                cursor: 'pointer',
+                border: `1px solid ${palette.border}`
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px) scale(1.1)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(1)' }}
               title="回到顶部"
             >
               ↑
@@ -325,20 +419,22 @@ function FloatingButton() {
         )}
 
         <button
-          onClick={handleNewPrompt}
           style={{
-            width: 56,
-            height: 56,
+            width: 60,
+            height: 60,
             borderRadius: '50%',
             background: `linear-gradient(135deg, ${palette.primary} 0%, ${palette.primaryDark} 100%)`,
             color: 'white',
-            fontSize: 24,
-            boxShadow: '0 4px 20px rgba(167, 139, 250, 0.4)',
+            fontSize: 28,
+            boxShadow: '0 6px 24px rgba(167, 139, 250, 0.4)',
             transition: 'transform 0.2s',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            cursor: 'pointer'
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'rotate(90deg) scale(1.1)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'rotate(0deg) scale(1)' }}
         >
           +
         </button>
@@ -351,6 +447,7 @@ function FloatingButton() {
 function Navbar() {
   const pathname = usePathname()
   const { palette } = useThemeContext()
+  const { user } = useAuth()
   const navItems = [
     { path: '/', label: '首页', icon: '🏠' },
     { path: '/forum', label: '公共论坛', icon: '🌐' },
@@ -383,7 +480,7 @@ function Navbar() {
               href={item.path}
               style={{
                 padding: '8px 16px',
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 14,
                 fontWeight: 500,
                 color: pathname === item.path ? palette.primary : palette.textSecondary,
@@ -406,26 +503,17 @@ function Navbar() {
 }
 
 function RootLayout({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const menu = document.querySelector('[data-user-menu]')
-      if (menu && !menu.contains(e.target as Node)) {
-      }
-    }
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [])
-
   return (
     <html lang="zh-CN">
       <body>
         <ThemeProvider>
           <AuthProvider>
             <Navbar />
-            <main style={{ maxWidth: 1400, margin: '0 auto', padding: '24px' }}>
+            <main style={{ maxWidth: 1400, margin: '0 auto', padding: '24px', minHeight: 'calc(100vh - 80px)' }}>
               {children}
             </main>
             <FloatingButton />
+            <Toast />
           </AuthProvider>
         </ThemeProvider>
       </body>

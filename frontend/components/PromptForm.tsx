@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { PromptItem } from '@/types/prompt'
 import { useThemeContext } from '@/app/ThemeProvider'
-import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth'
 
 type Props = {
   init?: PromptItem | null
@@ -11,6 +11,7 @@ type Props = {
 
 export default function PromptForm({ init, onSubmit }: Props) {
   const { palette } = useThemeContext()
+  const { user } = useAuth()
   const [title, setTitle] = useState(init?.title || '')
   const [content, setContent] = useState(init?.content || '')
   const [category, setCategory] = useState(init?.category || '通用')
@@ -22,10 +23,10 @@ export default function PromptForm({ init, onSubmit }: Props) {
     setErr('')
     if (!title.trim()) return setErr('标题不能为空')
     if (!content.trim()) return setErr('内容不能为空')
+    if (!user) return setErr('请先登录')
     setLoading(true)
     try {
       const tagArray = tags.split(',').map(t => t.trim()).filter(t => t)
-      const { data: { user } } = await supabase.auth.getUser()
       await onSubmit({
         title,
         content,
@@ -34,8 +35,8 @@ export default function PromptForm({ init, onSubmit }: Props) {
         tags: tagArray,
         visibility: init?.visibility || 'private',
         like_count: init?.like_count || 0,
-        author_id: user?.id || '',
-        author_name: user?.user_metadata?.nickname || user?.email || '',
+        author_id: user.id,
+        author_name: user.nickname || user.email || '',
         updated_at: new Date().toISOString()
       })
       setTitle('')

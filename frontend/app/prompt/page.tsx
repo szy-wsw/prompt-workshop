@@ -9,6 +9,7 @@ import LoginPopup from '@/components/LoginPopup'
 import Skeleton from '@/components/Skeleton'
 import Empty from '@/components/Empty'
 import { showToast } from '@/components/Toast'
+import Link from 'next/link'
 
 export default function PromptPage() {
   const [prompts, setPrompts] = useState<any[]>([])
@@ -113,18 +114,27 @@ export default function PromptPage() {
 
   if (!user) {
     return (
-      <div className="fade-in" style={{ textAlign: 'center', padding: '60px 0' }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>🔒</div>
-        <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 12, color: palette.text }}>
-          需要登录才能管理提示词
-        </h2>
-        <button
-          className="btn-primary"
-          onClick={() => setShowLoginPopup(true)}
-        >
-          立即登录
-        </button>
-        <LoginPopup isOpen={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
+      <div className="fade-in" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div className="card bounce-in" style={{ textAlign: 'center', padding: '60px 40px', maxWidth: 480 }}>
+          <div style={{ fontSize: 72, marginBottom: 20 }}>🔒</div>
+          <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 12, color: palette.text }}>
+            需要登录才能管理提示词
+          </h2>
+          <p style={{ color: palette.textSecondary, marginBottom: 24, lineHeight: 1.6 }}>
+            登录后可以创建、编辑和管理您的专属提示词库，还支持一键分享至公共论坛哦~
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button className="btn-primary" onClick={() => setShowLoginPopup(true)}>
+              立即登录
+            </button>
+            <Link href="/register">
+              <button className="btn-secondary">
+                注册账户
+              </button>
+            </Link>
+          </div>
+          <LoginPopup isOpen={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
+        </div>
       </div>
     )
   }
@@ -144,23 +154,23 @@ export default function PromptPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="card">
-              <Skeleton height={24} width="60%" style={{ marginBottom: 12 }} />
-              <Skeleton height={16} width="100%" style={{ marginBottom: 8 }} />
-              <Skeleton height={16} width="80%" style={{ marginBottom: 12 }} />
+            <div key={i} className="card" style={{ padding: 20 }}>
+              <Skeleton height={22} width="60%" style={{ marginBottom: 12 }} />
+              <Skeleton height={14} width="100%" style={{ marginBottom: 8 }} />
+              <Skeleton height={14} width="80%" style={{ marginBottom: 12 }} />
               <div style={{ display: 'flex', gap: 8 }}>
-                <Skeleton height={28} width={60} />
-                <Skeleton height={28} width={60} />
+                <Skeleton height={24} width={50} style={{ borderRadius: 12 }} />
+                <Skeleton height={24} width={50} style={{ borderRadius: 12 }} />
               </div>
             </div>
           ))}
         </div>
       ) : prompts.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
           {prompts.map(prompt => (
-            <PromptCard key={prompt.id} item={prompt} onEdit={() => handleEdit(prompt)} />
+            <PromptCard key={prompt.id} item={prompt} onEdit={() => handleEdit(prompt)} onDelete={fetchPrompts} />
           ))}
         </div>
       ) : (
@@ -246,28 +256,23 @@ export default function PromptPage() {
               <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, color: palette.text }}>
                 可见性
               </label>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="visibility"
-                    value="private"
-                    checked={formData.visibility === 'private'}
-                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as 'private' | 'public' })}
-                  />
-                  <span className="tag tag-warning">私密</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="visibility"
-                    value="public"
-                    checked={formData.visibility === 'public'}
-                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as 'private' | 'public' })}
-                  />
-                  <span className="tag tag-success">公开</span>
-                </label>
-              </div>
+              <select
+                value={formData.visibility}
+                onChange={(e) => setFormData({ ...formData, visibility: e.target.value as 'private' | 'public' })}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: 12,
+                  border: `2px solid ${palette.border}`,
+                  fontSize: 14,
+                  background: palette.bg,
+                  color: palette.text,
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="private">🔒 私密（仅自己可见）</option>
+                <option value="public">🌐 公开（所有人可见）</option>
+              </select>
             </div>
 
             <div style={{ marginBottom: 24 }}>

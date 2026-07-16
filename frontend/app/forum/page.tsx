@@ -13,27 +13,46 @@ export default function ForumPage() {
   const [search, setSearch] = useState('')
   const [tagFilter, setTagFilter] = useState('')
   const [tags, setTags] = useState<string[]>([])
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const perPage = 12
   const { palette } = useThemeContext()
 
   useEffect(() => {
-    fetchPrompts()
     fetchTags()
+  }, [])
+
+  useEffect(() => {
+    setPage(1)
+    fetchPrompts(1)
   }, [search, tagFilter])
 
-  const fetchPrompts = async () => {
+  useEffect(() => {
+    fetchPrompts(page)
+  }, [page])
+
+  const fetchPrompts = async (currentPage: number) => {
     setLoading(true)
-    let query = supabase.from('prompts').select('*, profiles(nickname, avatar_url)').eq('visibility', 'public').order('likes_count', { ascending: false })
-    
+    let query = supabase.from('prompts').select('*, profiles(nickname, avatar_url)', { count: 'exact' }).eq('visibility', 'public').order('created_at', { ascending: false })
+
     if (search) {
       query = query.ilike('title', `%${search}%`)
     }
     if (tagFilter) {
       query = query.contains('tags', [tagFilter])
     }
-    
-    const result = await safeSupabaseQuery(query)
+
+    const offset = (currentPage - 1) * perPage
+    const result = await safeSupabaseQuery(query.range(offset, offset + perPage - 1))
     if (result.success && result.data) {
       setPrompts(result.data as any[])
+      // 获取总数需要单独查询，这里简化处理
+      const countResult = await safeSupabaseQuery(
+        supabase.from('prompts').select('*', { count: 'exact', head: true }).eq('visibility', 'public')
+      )
+      if (countResult.success && (countResult.data as any)?.count !== undefined) {
+        setTotalCount((countResult.data as any).count || 0)
+      }
     }
     setLoading(false)
   }
@@ -44,10 +63,12 @@ export default function ForumPage() {
     )
     if (result.success && result.data) {
       const allTags = (result.data as any[]).flatMap(p => p.tags || [])
-      const uniqueTags = [...new Set(allTags)].slice(0, 10)
+      const uniqueTags = [...new Set(allTags)].slice(0, 15)
       setTags(uniqueTags)
     }
   }
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / perPage))
 
   return (
     <div className="fade-in">
@@ -73,7 +94,7 @@ export default function ForumPage() {
           <div style={{ flex: 1, minWidth: 200 }}>
             <input
               type="text"
-              placeholder="搜索提示词..."
+              placeholder="🔍 搜索提示词..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -90,17 +111,30 @@ export default function ForumPage() {
               onBlur={(e) => e.currentTarget.style.borderColor = palette.border}
             />
           </div>
-          
+
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setTagFilter('')}
+              className="tag"
+              style={{
+                background: tagFilter === '' ? `${palette.primary}20` : palette.bg,
+                color: tagFilter === '' ? palette.primary : palette.textSecondary,
+                cursor: 'pointer',
+                border: `1px solid ${tagFilter === '' ? palette.primary : palette.border}`
+              }}
+            >
+              全部
+            </button>
             {tags.map(tag => (
               <button
                 key={tag}
                 onClick={() => setTagFilter(tagFilter === tag ? '' : tag)}
-                className={`tag ${tagFilter === tag ? 'tag-primary' : 'tag-success'}`}
+                className="tag"
                 style={{
-                  background: tagFilter === tag ? `${palette.primary}20` : '#f0fdf4',
-                  color: tagFilter === tag ? palette.primary : '#10b981',
+                  background: tagFilter === tag ? `${palette.primary}20` : palette.bg,
+                  color: tagFilter === tag ? palette.primary : palette.textSecondary,
                   cursor: 'pointer',
+                  border: `1px solid ${tagFilter === tag ? palette.primary : palette.border}`,
                   transition: 'all 0.2s'
                 }}
               >
@@ -112,27 +146,87 @@ export default function ForumPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="card">
-              <Skeleton height={24} width="60%" style={{ marginBottom: 12 }} />
-              <Skeleton height={16} width="100%" style={{ marginBottom: 8 }} />
-              <Skeleton height={16} width="80%" style={{ marginBottom: 12 }} />
+            <div key={i} className="card" style={{ padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <Skeleton height={36} width={36} style={{ borderRadius: '50%' }} />
+                <Skeleton height={18} width="40%" />
+              </div>
+              <Skeleton height={22} width="60%" style={{ marginBottom: 12 }} />
+              <Skeleton height={14} width="100%" style={{ marginBottom: 8 }} />
+              <Skeleton height={14} width="80%" style={{ marginBottom: 12 }} />
               <div style={{ display: 'flex', gap: 8 }}>
-                <Skeleton height={28} width={60} />
-                <Skeleton height={28} width={60} />
+                <Skeleton height={24} width={50} style={{ borderRadius: 12 }} />
+                <Skeleton height={24} width={50} style={{ borderRadius: 12 }} />
               </div>
             </div>
           ))}
         </div>
       ) : prompts.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          {prompts.map(prompt => (
-            <PromptCard key={prompt.id} item={prompt} />
-          ))}
-        </div>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            {prompts.map(prompt => (
+              <PromptCard key={prompt.id} item={prompt} />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 32 }}>
+              <button
+                className="btn-secondary"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                style={{ padding: '8px 16px', fontSize: 14 }}
+              >
+                上一页
+              </button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number
+                  if (totalPages <= 5) {
+                    pageNum = i + 1
+                  } else if (page <= 3) {
+                    pageNum = i + 1
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i
+                  } else {
+                    pageNum = page - 2 + i
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: page === pageNum ? palette.primary : palette.bg,
+                        color: page === pageNum ? 'white' : palette.text,
+                        border: `1px solid ${page === pageNum ? palette.primary : palette.border}`,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+              </div>
+              <button
+                className="btn-secondary"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                style={{ padding: '8px 16px', fontSize: 14 }}
+              >
+                下一页
+              </button>
+            </div>
+          )}
+        </>
       ) : (
-        <Empty icon="🔍" title="未找到提示词" desc="尝试更换搜索关键词或标签" />
+        <Empty icon="🔍" title="未找到提示词" desc="尝试更换搜索关键词或标签，或者成为第一个分享的人吧！" />
       )}
     </div>
   )
