@@ -1,6 +1,6 @@
 import { PromptItem } from '@/types/prompt'
 
-const BASE_URL = 'http://127.0.0.1:5000/api/prompts'
+const BASE_URL = '/api/prompts'
 
 export async function getPrompts(): Promise<PromptItem[]> {
   const res = await fetch(BASE_URL)

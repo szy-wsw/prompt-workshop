@@ -27,7 +27,7 @@ const TEMPLATES = [
   { name: '创意写作', content: '请创作一个关于{主题}的{体裁}，包含{元素}。' }
 ]
 
-const API_BASE = 'http://127.0.0.1:5000'
+const API_BASE = ''
 
 export default function AIWorkspacePage() {
   const { user, loading: authLoading, token } = useAuth()
@@ -68,35 +68,13 @@ export default function AIWorkspacePage() {
 
   const checkAiStatus = async () => {
     if (!token) return
-    try {
-      const response = await fetch(`${API_BASE}/api/ai/status`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      const result = await response.json()
-      if (result.success && result.data) {
-        setAiOnline((result.data as any).online)
-      }
-    } catch {
-      setAiOnline(false)
-    }
+    setAiOnline(true)
   }
 
   const fetchModels = async () => {
     if (!token) return
-    try {
-      const response = await fetch(`${API_BASE}/api/ai/models`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      const result = await response.json()
-      if (result.success && result.data) {
-        setModels(result.data)
-        if (result.data.length > 0 && !selectedModel) {
-          setSelectedModel(result.data[0].name)
-        }
-      }
-    } catch {
-      // ignore
-    }
+    setModels([{ name: 'Qwen/Qwen2.5-7B-Instruct' }])
+    setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
   }
 
   const loadChatHistory = () => {
@@ -129,13 +107,13 @@ export default function AIWorkspacePage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/ai/generate`, {
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ model: selectedModel, prompt: testPrompt })
+        body: JSON.stringify({ prompt: testPrompt })
       })
 
       if (!response.ok) {
@@ -204,14 +182,13 @@ export default function AIWorkspacePage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/ai/chat`, {
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          model: selectedModel,
           messages: newMessages.map(m => ({ role: m.role, content: m.content }))
         })
       })
@@ -280,13 +257,13 @@ export default function AIWorkspacePage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/ai/improve`, {
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ prompt: improvePrompt, model: selectedModel })
+        body: JSON.stringify({ prompt: `请帮我润色优化以下提示词，使其更清晰、更专业、效果更好：\n\n${improvePrompt}` })
       })
 
       if (!response.ok) {
