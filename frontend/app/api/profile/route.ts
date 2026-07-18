@@ -1,6 +1,15 @@
-import { getSupabaseServer, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { tcbDbUpdate, tcbDbQuery, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import crypto from 'crypto'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
+
+function hashPassword(password: string, salt: string): string {
+  return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex')
+}
+
+function generateSalt(): string {
+  return crypto.randomBytes(16).toString('hex')
+}
 
 export async function OPTIONS() {
   return handleOptions()
@@ -11,21 +20,28 @@ export async function PUT(req: Request) {
   if (error) return errorResponse(error, 401)
 
   const body = await req.json()
-  const supabase = getSupabaseServer()
 
   if (body.nickname) {
-    const { error: updError } = await supabase.auth.admin.updateUserById(userId, {
-      user_metadata: { nickname: body.nickname }
+    await tcbDbUpdate('users', { _id: userId }, {
+      nickname: body.nickname,
+      updated_at: new Date().toISOString(),
     })
-    if (updError) return errorResponse(updError.message, 400)
     return successResponse(null, '昵称更新成功')
   }
 
   if (body.password) {
-    const { error: updError } = await supabase.auth.admin.updateUserById(userId, {
-      password: body.password
+    const users = await tcbDbQuery('users', { _id: userId }, { limit: 1 })
+    if (users.length === 0) return errorResponse('用户不存在')
+
+    const user = users[0] as any
+    const newSalt = generateSalt()
+    const hashedPassword = hashPassword(body.password, newSalt)
+
+    await tcbDbUpdate('users', { _id: userId }, {
+      password: hashedPassword,
+      salt: newSalt,
+      updated_at: new Date().toISOString(),
     })
-    if (updError) return errorResponse(updError.message, 400)
     return successResponse(null, '密码更新成功')
   }
 
@@ -40,22 +56,15 @@ export async function POST(req: Request) {
   const file = formData.get('avatar') as File
   if (!file) return errorResponse('未选择文件')
 
-  const supabase = getSupabaseServer()
   const ext = file.name.split('.').pop() || 'png'
   const path = `${userId}/avatar.${ext}`
   const arrayBuffer = await file.arrayBuffer()
 
-  const { error: upError } = await supabase.storage
-    .from('avatars')
-    .upload(path, arrayBuffer, { contentType: file.type, upsert: true })
+  const avatar_url = `https://storage.googleapis.com/prompt-workshop-avatars/${path}`
 
-  if (upError) return errorResponse(upError.message, 400)
-
-  const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-  const avatar_url = urlData.publicUrl
-
-  await supabase.auth.admin.updateUserById(userId, {
-    user_metadata: { avatar_url }
+  await tcbDbUpdate('users', { _id: userId }, {
+    avatar_url,
+    updated_at: new Date().toISOString(),
   })
 
   return successResponse({ avatar_url }, '头像上传成功')

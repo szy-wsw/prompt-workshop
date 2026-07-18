@@ -1,6 +1,6 @@
-import { getSupabaseServer, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { tcbDbCount, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 export async function OPTIONS() {
   return handleOptions()
@@ -13,17 +13,15 @@ export async function GET(req: Request) {
   const url = new URL(req.url)
   const targetUserId = url.searchParams.get('user_id') || userId
 
-  const supabase = getSupabaseServer()
-
-  const [{ count: total_prompts }, { count: public_prompts }, { count: total_collections }] = await Promise.all([
-    supabase.from('prompts').select('*', { count: 'exact', head: true }).eq('author_id', targetUserId),
-    supabase.from('prompts').select('*', { count: 'exact', head: true }).eq('author_id', targetUserId).eq('visibility', 'public'),
-    supabase.from('collections').select('*', { count: 'exact', head: true }).eq('user_id', targetUserId),
+  const [total_prompts, public_prompts, total_collections] = await Promise.all([
+    tcbDbCount('prompts', { author_id: targetUserId }),
+    tcbDbCount('prompts', { author_id: targetUserId, visibility: 'public' }),
+    tcbDbCount('collections', { user_id: targetUserId }),
   ])
 
   return successResponse({
-    total_prompts: total_prompts || 0,
-    public_prompts: public_prompts || 0,
-    total_collections: total_collections || 0
+    total_prompts,
+    public_prompts,
+    total_collections,
   })
 }

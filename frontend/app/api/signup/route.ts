@@ -1,6 +1,15 @@
-import { getSupabaseServer, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { tcbDbQuery, tcbDbAdd, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import crypto from 'crypto'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
+
+function hashPassword(password: string, salt: string): string {
+  return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex')
+}
+
+function generateSalt(): string {
+  return crypto.randomBytes(16).toString('hex')
+}
 
 export async function OPTIONS() {
   return handleOptions()
@@ -17,22 +26,24 @@ export async function POST(req: Request) {
     if (!password || password.length < 6)
       return errorResponse('密码至少6位')
 
-    const supabase = getSupabaseServer()
-    const { data, error } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      user_metadata: { nickname },
-      email_confirm: true,
-    })
-
-    if (error) {
-      const msg = error.message.toLowerCase()
-      if (msg.includes('already') || msg.includes('registered') || msg.includes('exists'))
-        return errorResponse('该邮箱已注册，请直接登录')
-      if (msg.includes('password'))
-        return errorResponse('密码不符合安全要求')
-      return errorResponse(error.message)
+    const existingUsers = await tcbDbQuery('users', { email })
+    if (existingUsers.length > 0) {
+      return errorResponse('该邮箱已注册，请直接登录')
     }
+
+    const salt = generateSalt()
+    const hashedPassword = hashPassword(password, salt)
+    const now = new Date().toISOString()
+
+    await tcbDbAdd('users', {
+      email,
+      password: hashedPassword,
+      salt,
+      nickname,
+      avatar_url: '',
+      created_at: now,
+      updated_at: now,
+    })
 
     return successResponse(null, '注册成功，请登录')
   } catch (e) {

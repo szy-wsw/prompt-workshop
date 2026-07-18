@@ -1,6 +1,11 @@
-import { getSupabaseServer, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { tcbDbQuery, successResponse, errorResponse, handleOptions, generateToken } from '@/lib/supabase-server'
+import crypto from 'crypto'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
+
+function hashPassword(password: string, salt: string): string {
+  return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex')
+}
 
 export async function OPTIONS() {
   return handleOptions()
@@ -13,24 +18,27 @@ export async function POST(req: Request) {
     if (!email?.trim()) return errorResponse('请输入邮箱')
     if (!password) return errorResponse('请输入密码')
 
-    const supabase = getSupabaseServer()
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (error || !data.user) {
-      const msg = error?.message?.toLowerCase() || ''
-      if (msg.includes('invalid') || msg.includes('credentials'))
-        return errorResponse('邮箱或密码错误')
-      return errorResponse(error?.message || '登录失败')
+    const users = await tcbDbQuery('users', { email })
+    if (users.length === 0) {
+      return errorResponse('邮箱或密码错误')
     }
 
-    const nickname = data.user.user_metadata?.nickname || '用户'
+    const user = users[0] as any
+    const hashedPassword = hashPassword(password, user.salt)
+
+    if (hashedPassword !== user.password) {
+      return errorResponse('邮箱或密码错误')
+    }
+
+    const token = generateToken({ userId: user._id, email: user.email })
+    const expiresAt = Math.floor(Date.now() / 1000) + 86400
 
     return successResponse({
-      user: { id: data.user.id, email: data.user.email, nickname },
+      user: { id: user._id, email: user.email, nickname: user.nickname, avatar_url: user.avatar_url || '' },
       session: {
-        access_token: data.session?.access_token,
-        refresh_token: data.session?.refresh_token,
-        expires_at: data.session?.expires_at,
+        access_token: token,
+        refresh_token: '',
+        expires_at: expiresAt,
       },
     }, '登录成功')
   } catch (e) {

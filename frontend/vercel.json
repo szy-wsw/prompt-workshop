@@ -1,8 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "next build",
+  "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
+  "installCommand": "npm install",
+  "env": {
+    "TCB_ENV_ID": "prompt-storage-d2gp4mcks061b539e",
+    "JWT_SECRET": "prompt-workshop-tcb-jwt-secret-key",
+    "SILICONFLOW_API_KEY": "sk-oezcasnfhqnelvjuswgrpjzhokjqilsqnrcjqwxefmkwgjqy",
+    "FREE_MODEL_ID": "Qwen/Qwen2.5-7B-Instruct"
+  },
   "trailingSlash": false,
   "cleanUrls": true,
   "headers": [
@@ -20,13 +27,6 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/api",
-      "destination": "/api/",
-      "permanent": false
     }
   ]
 }

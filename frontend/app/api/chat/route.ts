@@ -1,6 +1,6 @@
 import { verifyAuth, errorResponse, handleOptions, SILICONFLOW_API_KEY, SILICONFLOW_BASE_URL, FREE_MODEL_ID } from '@/lib/supabase-server'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 const RATE_LIMIT = 8
 const RATE_LIMIT_WINDOW = 60

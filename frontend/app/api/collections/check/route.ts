@@ -1,6 +1,6 @@
-import { getSupabaseServer, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { tcbDbQuery, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 export async function OPTIONS() {
   return handleOptions()
@@ -12,14 +12,11 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url)
   const prompt_id = url.searchParams.get('prompt_id')
+
   if (!prompt_id) return errorResponse('缺少prompt_id')
 
-  const supabase = getSupabaseServer()
-  const { count } = await supabase
-    .from('collections')
-    .select('*', { count: 'exact', head: true })
-    .eq('prompt_id', prompt_id)
-    .eq('user_id', userId)
+  const collections = await tcbDbQuery('collections', { prompt_id, user_id: userId }, { limit: 1 })
+  const collected = collections.length > 0
 
-  return successResponse({ collected: (count || 0) > 0 })
+  return successResponse({ collected })
 }
