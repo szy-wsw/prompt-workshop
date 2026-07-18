@@ -36,3 +36,8 @@ backend/.tox/
 frontend/.env.local
 frontend/.next/
 frontend/node_modules/
+
+# 待补充截图后再推送的文档
+frontend/prompt_log.md
+frontend/docs/test-report.md
+frontend/docs/code-review.md
