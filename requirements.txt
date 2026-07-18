@@ -1,6 +1,0 @@
-flask 
-flask-login 
-werkzeug 
-tcb-python 
-bcrypt 
-python-dotenv 

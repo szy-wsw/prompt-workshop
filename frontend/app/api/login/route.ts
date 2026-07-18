@@ -30,11 +30,11 @@ export async function POST(req: Request) {
       return errorResponse('邮箱或密码错误')
     }
 
-    const token = generateToken({ userId: user._id, email: user.email })
+    const token = generateToken({ userId: user.id, email: user.email })
     const expiresAt = Math.floor(Date.now() / 1000) + 86400
 
     return successResponse({
-      user: { id: user._id, email: user.email, nickname: user.nickname, avatar_url: user.avatar_url || '' },
+      user: { id: user.id, email: user.email, nickname: user.nickname, avatar_url: user.avatar_url || '' },
       session: {
         access_token: token,
         refresh_token: '',

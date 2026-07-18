@@ -62,6 +62,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json()
 
       if (data.success) {
+        // 注册成功后自动登录
+        const loginRes = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        })
+        const loginData = await loginRes.json()
+        if (loginData.success && loginData.data) {
+          const { user: userData, session } = loginData.data
+          const accessToken = session?.access_token || ''
+          setUser(userData)
+          setToken(accessToken)
+          localStorage.setItem('auth_token', accessToken)
+          localStorage.setItem('auth_user', JSON.stringify(userData))
+        }
         return { success: true, message: data.message || '注册成功' }
       }
       return { success: false, message: data.message || `注册失败(${res.status})` }
@@ -118,8 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(data)
       })
       const result = await res.json()
-      if (result.success && user) {
-        const updatedUser = { ...user, nickname: data.nickname }
+      if (result.success && user && result.data) {
+        const updatedUser = { ...user, ...result.data }
         setUser(updatedUser)
         localStorage.setItem('auth_user', JSON.stringify(updatedUser))
       }
@@ -137,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ password: newPassword })
+        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
       })
       const result = await res.json()
       return { success: result.success, message: result.message || '更新失败' }

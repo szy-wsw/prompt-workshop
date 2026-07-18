@@ -1,31 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
   "framework": "nextjs",
+  "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "env": {
-    "TCB_ENV_ID": "prompt-storage-d2gp4mcks061b539e",
-    "JWT_SECRET": "prompt-workshop-tcb-jwt-secret-key",
-    "SILICONFLOW_API_KEY": "sk-oezcasnfhqnelvjuswgrpjzhokjqilsqnrcjqwxefmkwgjqy",
-    "FREE_MODEL_ID": "Qwen/Qwen2.5-7B-Instruct"
-  },
-  "trailingSlash": false,
-  "cleanUrls": true,
+  "outputDirectory": ".next",
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-DNS-Prefetch-Control", "value": "on" }
-      ]
-    },
-    {
-      "source": "/_next/static/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
       ]
     }
   ]

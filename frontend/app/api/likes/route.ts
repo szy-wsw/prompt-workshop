@@ -20,10 +20,10 @@ export async function POST(req: Request) {
 
   await tcbDbAdd('likes', { prompt_id, user_id: userId })
 
-  const prompts = await tcbDbQuery('prompts', { _id: prompt_id }, { limit: 1 })
+  const prompts = await tcbDbQuery('prompts', { id: prompt_id }, { limit: 1 })
   if (prompts.length > 0) {
     const prompt = prompts[0] as any
-    await tcbDbUpdate('prompts', { _id: prompt_id }, {
+    await tcbDbUpdate('prompts', { id: prompt_id }, {
       likes_count: (prompt.likes_count || 0) + 1,
     })
   }
@@ -40,11 +40,11 @@ export async function DELETE(req: Request) {
 
   await tcbDbDelete('likes', { prompt_id, user_id: userId })
 
-  const prompts = await tcbDbQuery('prompts', { _id: prompt_id }, { limit: 1 })
+  const prompts = await tcbDbQuery('prompts', { id: prompt_id }, { limit: 1 })
   if (prompts.length > 0) {
     const prompt = prompts[0] as any
     if (prompt.likes_count && prompt.likes_count > 0) {
-      await tcbDbUpdate('prompts', { _id: prompt_id }, {
+      await tcbDbUpdate('prompts', { id: prompt_id }, {
         likes_count: prompt.likes_count - 1,
       })
     }

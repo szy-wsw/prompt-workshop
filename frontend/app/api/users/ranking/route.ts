@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   })
 
   const rankings = users.map((user: any) => ({
-    id: user._id || user.id,
+    id: user.id || user._id,
     nickname: user.nickname,
     email: user.email,
     avatar_url: user.avatar_url,

@@ -17,18 +17,18 @@ export async function GET(req: Request) {
 
   const promptIds = collections.map((c: any) => c.prompt_id)
   const prompts = promptIds.length > 0
-    ? await tcbDbQuery('prompts', {}, {})
+    ? await tcbDbQuery('prompts', { visibility: 'public' }, {})
     : []
 
   const result = collections.map((col: any) => {
-    const prompt = prompts.find((p: any) => String(p._id) === String(col.prompt_id))
+    const prompt = prompts.find((p: any) => String(p.id) === String(col.prompt_id))
     if (prompt) {
       const promptAny = prompt as any
       return {
         ...col,
         prompts: {
           ...promptAny,
-          id: promptAny._id || promptAny.id,
+          id: promptAny.id || promptAny._id,
         },
       }
     }

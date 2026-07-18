@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const [stats, setStats] = useState({ total_prompts: 0, total_collections: 0, public_prompts: 0 })
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [avatarError, setAvatarError] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user, updateProfile, updatePassword, updateAvatar } = useAuth()
   const { palette, mode, setMode } = useThemeContext()
@@ -184,8 +185,13 @@ export default function ProfilePage() {
                 boxShadow: palette.shadow
               }}
             >
-              {user.avatar_url ? (
-                <img src={user.avatar_url} alt="头像" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {user.avatar_url && !avatarError ? (
+                <img
+                  src={user.avatar_url}
+                  alt="头像"
+                  onError={() => setAvatarError(true)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               ) : (
                 <span style={{ color: 'white', fontWeight: 700 }}>{user.nickname.charAt(0)}</span>
               )}

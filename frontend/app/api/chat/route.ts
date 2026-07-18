@@ -32,6 +32,10 @@ export async function POST(req: Request) {
   }
 
   try {
+    if (!SILICONFLOW_API_KEY) {
+      return errorResponse('AI服务未配置，请联系管理员设置 SILICONFLOW_API_KEY', 503)
+    }
+
     const body = await req.json()
     const messages = body?.messages ?? []
     const prompt = body?.prompt ?? ''

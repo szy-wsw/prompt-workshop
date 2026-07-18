@@ -26,17 +26,14 @@ export async function POST(req: Request) {
     if (!password || password.length < 6)
       return errorResponse('密码至少6位')
 
-    console.log('TCB_ENV_ID:', process.env.TCB_ENV_ID)
-    
     try {
       const existingUsers = await tcbDbQuery('users', { email })
-      console.log('Existing users count:', existingUsers?.length || 0)
       
       if (existingUsers.length > 0) {
         return errorResponse('该邮箱已注册，请直接登录')
       }
     } catch (dbError) {
-      console.error('TCB Query Error:', dbError)
+      console.error('Database Query Error:', dbError)
       return errorResponse(`数据库查询失败: ${dbError instanceof Error ? dbError.message : '未知错误'}`)
     }
 
@@ -55,7 +52,7 @@ export async function POST(req: Request) {
         updated_at: now,
       })
     } catch (dbError) {
-      console.error('TCB Add Error:', dbError)
+      console.error('Database Add Error:', dbError)
       return errorResponse(`数据库写入失败: ${dbError instanceof Error ? dbError.message : '未知错误'}`)
     }
 

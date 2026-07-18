@@ -6,6 +6,24 @@ export async function OPTIONS() {
   return handleOptions()
 }
 
+async function attachAuthorProfiles(prompts: any[]): Promise<any[]> {
+  const authorIds = [...new Set(prompts.map((p: any) => p.author_id).filter(Boolean))]
+  if (authorIds.length === 0) return prompts
+
+  const users = await tcbDbQuery('users', {}, {})
+  const userMap = new Map(
+    (users as any[]).map((u: any) => [
+      String(u.id),
+      { nickname: u.nickname, avatar_url: u.avatar_url || '', email: u.email }
+    ])
+  )
+
+  return prompts.map((p: any) => ({
+    ...p,
+    profiles: userMap.get(String(p.author_id)) || { nickname: '未知用户', avatar_url: '' }
+  }))
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const user_id = url.searchParams.get('user_id')
@@ -25,7 +43,7 @@ export async function GET(req: Request) {
   }
 
   if (prompt_id) {
-    query['_id'] = prompt_id
+    query['id'] = prompt_id
   } else if (user_id && visibility) {
     query['author_id'] = user_id
     query['visibility'] = visibility
@@ -65,7 +83,9 @@ export async function GET(req: Request) {
     id: item._id || item.id,
   }))
 
-  return successResponse({ data: dataWithId, total })
+  const dataWithProfiles = await attachAuthorProfiles(dataWithId)
+
+  return successResponse({ data: dataWithProfiles, total })
 }
 
 export async function POST(req: Request) {
@@ -87,7 +107,7 @@ export async function POST(req: Request) {
       updated_at: now,
     })
 
-    const promptId = result._id || result.id
+    const promptId = result.id || result._id
 
     await tcbDbAdd('prompt_history', {
       prompt_id: promptId,

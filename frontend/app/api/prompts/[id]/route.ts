@@ -12,7 +12,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const { id } = await params
 
-  const prompts = await tcbDbQuery('prompts', { _id: id }, { limit: 1 })
+  const prompts = await tcbDbQuery('prompts', { id: id }, { limit: 1 })
   const existing = prompts[0] as any
   if (!existing) return errorResponse('提示词不存在', 404)
   if (existing.author_id !== userId) return errorResponse('无权限修改', 403)
@@ -20,7 +20,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const body = await req.json()
   const now = new Date().toISOString()
 
-  await tcbDbUpdate('prompts', { _id: id }, {
+  await tcbDbUpdate('prompts', { id: id }, {
     title: body.title,
     content: body.content,
     tags: body.tags,
@@ -47,7 +47,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   const { id } = await params
 
-  const prompts = await tcbDbQuery('prompts', { _id: id }, { limit: 1 })
+  const prompts = await tcbDbQuery('prompts', { id: id }, { limit: 1 })
   const existing = prompts[0] as any
   if (!existing) return errorResponse('提示词不存在', 404)
   if (existing.author_id !== userId) return errorResponse('无权限删除', 403)
@@ -55,7 +55,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   await tcbDbDelete('prompt_history', { prompt_id: id })
   await tcbDbDelete('likes', { prompt_id: id })
   await tcbDbDelete('collections', { prompt_id: id })
-  await tcbDbDelete('prompts', { _id: id })
+  await tcbDbDelete('prompts', { id: id })
 
   return successResponse(null, '删除成功')
 }

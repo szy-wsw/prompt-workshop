@@ -22,10 +22,12 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
   const [likesCount, setLikesCount] = useState<number>(item.likes_count || 0)
   const [showConfirm, setShowConfirm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
   const { user, token } = useAuth()
   const { palette } = useThemeContext()
 
   const promptId = item._id || item.id
+  const hasAvatar = item.profiles?.avatar_url && !avatarError
 
   useEffect(() => {
     if (user && promptId && token) {
@@ -208,8 +210,8 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
         {/* 顶部操作栏 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1 }}>
-            {(item.tags || []).slice(0, 3).map((tag: string) => (
-              <span key={tag} className="tag tag-primary" style={{ background: `${palette.primary}15`, color: palette.primary }}>
+            {(item.tags || []).slice(0, 3).map((tag: string, index: number) => (
+              <span key={`${index}-${tag}`} className="tag tag-primary" style={{ background: `${palette.primary}15`, color: palette.primary }}>
                 {tag}
               </span>
             ))}
@@ -341,8 +343,13 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
                 overflow: 'hidden'
               }}
             >
-              {item.profiles?.avatar_url ? (
-                <img src={item.profiles.avatar_url} alt="头像" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+              {hasAvatar ? (
+                <img
+                  src={item.profiles.avatar_url}
+                  alt="头像"
+                  onError={() => setAvatarError(true)}
+                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                />
               ) : item.profiles?.nickname ? (
                 <span style={{ color: 'white', fontWeight: 600 }}>{item.profiles.nickname.charAt(0)}</span>
               ) : (

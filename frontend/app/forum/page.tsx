@@ -91,7 +91,7 @@ export default function ForumPage() {
           boxShadow: palette.shadow
         }}
       >
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
           <div style={{ flex: 1, minWidth: 200 }}>
             <input
               type="text"
@@ -112,37 +112,37 @@ export default function ForumPage() {
               onBlur={(e) => e.currentTarget.style.borderColor = palette.border}
             />
           </div>
+        </div>
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setTagFilter('')}
+            className="tag"
+            style={{
+              background: tagFilter === '' ? `${palette.primary}20` : palette.bg,
+              color: tagFilter === '' ? palette.primary : palette.textSecondary,
+              cursor: 'pointer',
+              border: `1px solid ${tagFilter === '' ? palette.primary : palette.border}`
+            }}
+          >
+            全部
+          </button>
+          {tags.map(tag => (
             <button
-              onClick={() => setTagFilter('')}
+              key={tag}
+              onClick={() => setTagFilter(tagFilter === tag ? '' : tag)}
               className="tag"
               style={{
-                background: tagFilter === '' ? `${palette.primary}20` : palette.bg,
-                color: tagFilter === '' ? palette.primary : palette.textSecondary,
+                background: tagFilter === tag ? `${palette.primary}20` : palette.bg,
+                color: tagFilter === tag ? palette.primary : palette.textSecondary,
                 cursor: 'pointer',
-                border: `1px solid ${tagFilter === '' ? palette.primary : palette.border}`
+                border: `1px solid ${tagFilter === tag ? palette.primary : palette.border}`,
+                transition: 'all 0.2s'
               }}
             >
-              全部
+              {tag}
             </button>
-            {tags.map(tag => (
-              <button
-                key={tag}
-                onClick={() => setTagFilter(tagFilter === tag ? '' : tag)}
-                className="tag"
-                style={{
-                  background: tagFilter === tag ? `${palette.primary}20` : palette.bg,
-                  color: tagFilter === tag ? palette.primary : palette.textSecondary,
-                  cursor: 'pointer',
-                  border: `1px solid ${tagFilter === tag ? palette.primary : palette.border}`,
-                  transition: 'all 0.2s'
-                }}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
 

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://supabase.com/schema/storage-cors.json",
+  "description": "Prompt Workshop - avatars 存储桶 CORS 策略（仅适配 localhost 本地开发）",
+  "buckets": [
+    {
+      "bucket_id": "avatars",
+      "cors": [
+        {
+          "allowed_origins": [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+          ],
+          "allowed_methods": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "HEAD"
+          ],
+          "allowed_headers": [
+            "Content-Type",
+            "Authorization",
+            "x-upsert"
+          ],
+          "exposed_headers": [
+            "Content-Length",
+            "ETag"
+          ],
+          "max_age_seconds": 3600
+        }
+      ]
+    }
+  ],
+  "note": "线上域名 CORS 配置待自定义域名完成实名认证与 DNS 解析后补充"
+}
