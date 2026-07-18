@@ -6,7 +6,7 @@ import { useThemeContext } from '../ThemeProvider'
 import LoginPopup from '@/components/LoginPopup'
 import { showToast } from '@/components/Toast'
 import { themePalettes, ThemeMode } from '../theme'
-import { supabase, safeFetch } from '@/lib/supabase'
+import { safeFetch } from '@/lib/supabase'
 
 export default function ProfilePage() {
   const [showLoginPopup, setShowLoginPopup] = useState(false)

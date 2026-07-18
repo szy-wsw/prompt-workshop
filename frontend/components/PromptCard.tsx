@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase, safeSupabaseQuery, safeFetch } from '@/lib/supabase'
+import { safeFetch } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { useThemeContext } from '../app/ThemeProvider'
 import LoginPopup from './LoginPopup'
@@ -22,25 +22,33 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
   const [likesCount, setLikesCount] = useState<number>(item.likes_count || 0)
   const [showConfirm, setShowConfirm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const { palette } = useThemeContext()
 
+  const promptId = item._id || item.id
+
   useEffect(() => {
-    if (user && item.id) {
+    if (user && promptId && token) {
       checkLikeStatus()
       checkCollectStatus()
     }
-  }, [user, item.id])
+  }, [user, promptId, token])
 
   const checkLikeStatus = async () => {
-    const result = await safeFetch(`/api/likes/check?prompt_id=${item.id}&user_id=${user!.id}`)
+    if (!token) return
+    const result = await safeFetch(`/api/likes/check?prompt_id=${promptId}&user_id=${user!.id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
     if (result.success && result.data) {
       setLiked((result.data as any).liked)
     }
   }
 
   const checkCollectStatus = async () => {
-    const result = await safeFetch(`/api/collections/check?prompt_id=${item.id}&user_id=${user!.id}`)
+    if (!token) return
+    const result = await safeFetch(`/api/collections/check?prompt_id=${promptId}&user_id=${user!.id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
     if (result.success && result.data) {
       setCollected((result.data as any).collected)
     }
@@ -55,7 +63,11 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
     if (liked) {
       const result = await safeFetch('/api/likes', {
         method: 'DELETE',
-        body: JSON.stringify({ prompt_id: item.id, user_id: user.id })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ prompt_id: promptId, user_id: user.id })
       })
       if (result.success) {
         setLiked(false)
@@ -67,7 +79,11 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
     } else {
       const result = await safeFetch('/api/likes', {
         method: 'POST',
-        body: JSON.stringify({ prompt_id: item.id, user_id: user.id })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ prompt_id: promptId, user_id: user.id })
       })
       if (result.success) {
         setLiked(true)
@@ -93,7 +109,11 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
     if (collected) {
       const result = await safeFetch('/api/collections', {
         method: 'DELETE',
-        body: JSON.stringify({ prompt_id: item.id, user_id: user.id })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ prompt_id: promptId, user_id: user.id })
       })
       if (result.success) {
         setCollected(false)
@@ -104,7 +124,11 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
     } else {
       const result = await safeFetch('/api/collections', {
         method: 'POST',
-        body: JSON.stringify({ prompt_id: item.id, user_id: user.id })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ prompt_id: promptId, user_id: user.id })
       })
       if (result.success) {
         setCollected(true)
@@ -131,18 +155,31 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
 
   const handleDelete = async () => {
     setShowConfirm(false)
-    const result = await safeSupabaseQuery(
-      supabase.from('prompts').delete().eq('id', item.id)
-    )
-    if (result.success) {
-      showToast('删除成功', 'success')
-      if (onDelete) {
-        onDelete()
+    if (!token) {
+      showToast('请先登录', 'error')
+      return
+    }
+    try {
+      const res = await fetch(`/api/prompts/${promptId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const result = await res.json()
+      if (result.success) {
+        showToast('删除成功', 'success')
+        if (onDelete) {
+          onDelete()
+        } else {
+          window.location.reload()
+        }
       } else {
-        window.location.reload()
+        showToast(result.message || '删除失败', 'error')
       }
-    } else {
-      showToast(result.error || '删除失败', 'error')
+    } catch (e) {
+      showToast('删除失败', 'error')
     }
   }
 

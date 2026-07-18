@@ -12,6 +12,14 @@ interface Message {
   timestamp: number
 }
 
+interface ChatHistoryItem {
+  id: string
+  user_message: string
+  ai_response: string
+  created_at: string
+  model: string
+}
+
 interface Model {
   name: string
   size?: number
@@ -35,7 +43,7 @@ export default function AIWorkspacePage() {
   const [aiOnline, setAiOnline] = useState(false)
   const [models, setModels] = useState<Model[]>([])
   const [selectedModel, setSelectedModel] = useState('')
-  const [activeTab, setActiveTab] = useState<'test' | 'chat' | 'improve' | 'templates'>('test')
+  const [activeTab, setActiveTab] = useState<'test' | 'chat' | 'improve' | 'templates'>('chat')
   const [testPrompt, setTestPrompt] = useState('')
   const [testResult, setTestResult] = useState('')
   const [testLoading, setTestLoading] = useState(false)
@@ -45,6 +53,9 @@ export default function AIWorkspacePage() {
   const [improvePrompt, setImprovePrompt] = useState('')
   const [improveResult, setImproveResult] = useState('')
   const [improveLoading, setImproveLoading] = useState(false)
+  const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const { palette } = useThemeContext()
   const chatEndRef = useRef<HTMLDivElement>(null)
 
@@ -59,6 +70,7 @@ export default function AIWorkspacePage() {
       checkAiStatus()
       fetchModels()
       loadChatHistory()
+      fetchServerHistory()
     }
   }, [user])
 
@@ -77,6 +89,26 @@ export default function AIWorkspacePage() {
     setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
   }
 
+  const fetchServerHistory = async () => {
+    if (!token) return
+    setHistoryLoading(true)
+    try {
+      const res = await fetch('/api/chat-history?per_page=20', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const result = await res.json()
+      if (result.success && result.data) {
+        setChatHistory(result.data.data || result.data || [])
+      }
+    } catch (e) {
+      console.error('Fetch chat history error:', e)
+    }
+    setHistoryLoading(false)
+  }
+
   const loadChatHistory = () => {
     const saved = localStorage.getItem('ai_chat_history')
     if (saved) {
@@ -90,6 +122,28 @@ export default function AIWorkspacePage() {
 
   const saveChatHistory = (newMessages: Message[]) => {
     localStorage.setItem('ai_chat_history', JSON.stringify(newMessages))
+  }
+
+  const useHistoryItem = (item: ChatHistoryItem) => {
+    const newMessages: Message[] = [
+      { role: 'user', content: item.user_message, timestamp: new Date(item.created_at).getTime() },
+      { role: 'assistant', content: item.ai_response, timestamp: new Date(item.created_at).getTime() + 1000 }
+    ]
+    setMessages(newMessages)
+    saveChatHistory(newMessages)
+    setShowHistory(false)
+    showToast('已加载历史对话', 'success')
+  }
+
+  const saveAsPrompt = (content: string, isUser: boolean) => {
+    const title = isUser ? content.slice(0, 30) + '...' : 'AI对话生成的提示词'
+    const promptContent = isUser ? content : content
+    
+    navigator.clipboard.writeText(promptContent).then(() => {
+      showToast('内容已复制，可到「我的提示词」中保存', 'success')
+    }).catch(() => {
+      showToast('复制失败', 'error')
+    })
   }
 
   const handleTestPrompt = async () => {
@@ -514,89 +568,211 @@ export default function AIWorkspacePage() {
         )}
 
         {activeTab === 'chat' && (
-          <div>
-            <div
-              style={{
-                background: palette.bg,
-                padding: 16,
-                borderRadius: 12,
-                border: `1px solid ${palette.border}`,
-                maxHeight: 400,
-                overflowY: 'auto',
-                marginBottom: 16
-              }}
-            >
-              {messages.length === 0 ? (
-                <div style={{ textAlign: 'center', color: palette.textSecondary, padding: 32 }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
-                  <div>开始与AI对话吧！</div>
-                </div>
-              ) : (
-                messages.map((msg, index) => (
-                  <div key={index} style={{ marginBottom: 16, display: 'flex', gap: 12 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        background: msg.role === 'user' ? palette.primary : `${palette.success}60`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 16,
-                        flexShrink: 0
-                      }}
-                    >
-                      {msg.role === 'user' ? '👤' : '🤖'}
-                    </div>
-                    <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 14, fontWeight: 500, color: palette.text }}>💬 对话窗口</span>
+                <button
+                  onClick={() => { setShowHistory(!showHistory); if (!showHistory) fetchServerHistory() }}
+                  className="btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: 13 }}
+                >
+                  📜 {showHistory ? '隐藏历史' : '历史记录'}
+                </button>
+              </div>
+              <div
+                style={{
+                  background: palette.bg,
+                  padding: 16,
+                  borderRadius: 12,
+                  border: `1px solid ${palette.border}`,
+                  maxHeight: 400,
+                  overflowY: 'auto',
+                  marginBottom: 16
+                }}
+              >
+                {messages.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: palette.textSecondary, padding: 32 }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
+                    <div>开始与AI对话吧！</div>
+                  </div>
+                ) : (
+                  messages.map((msg, index) => (
+                    <div key={index} style={{ marginBottom: 16, display: 'flex', gap: 12 }}>
                       <div
                         style={{
-                          background: msg.role === 'user' ? `${palette.primary}15` : palette.bgCard,
-                          padding: 12,
-                          borderRadius: msg.role === 'user' ? '12px 12px 0 12px' : '12px 12px 12px 0',
-                          fontSize: 14,
-                          color: palette.text,
-                          lineHeight: 1.6,
-                          border: msg.role === 'assistant' ? `1px solid ${palette.border}` : 'none'
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          background: msg.role === 'user' ? palette.primary : `${palette.success}60`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 16,
+                          flexShrink: 0
                         }}
                       >
-                        {msg.content}
+                        {msg.role === 'user' ? '👤' : '🤖'}
                       </div>
-                      <div style={{ fontSize: 11, color: palette.textSecondary, marginTop: 4 }}>
-                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      <div style={{ flex: 1 }}>
+                        <div
+                          style={{
+                            background: msg.role === 'user' ? `${palette.primary}15` : palette.bgCard,
+                            padding: 12,
+                            borderRadius: msg.role === 'user' ? '12px 12px 0 12px' : '12px 12px 12px 0',
+                            fontSize: 14,
+                            color: palette.text,
+                            lineHeight: 1.6,
+                            border: msg.role === 'assistant' ? `1px solid ${palette.border}` : 'none',
+                            position: 'relative'
+                          }}
+                        >
+                          {msg.content}
+                          {msg.role === 'assistant' && (
+                            <button
+                              onClick={() => copyToClipboard(msg.content)}
+                              style={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                background: 'none',
+                                border: 'none',
+                                color: palette.textSecondary,
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                opacity: 0.7
+                              }}
+                              title="复制"
+                            >
+                              📋
+                            </button>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: palette.textSecondary, marginTop: 4 }}>
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
-              <div ref={chatEndRef} />
+                  ))
+                )}
+                <div ref={chatEndRef} />
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && !chatLoading && handleChat()}
+                  placeholder="输入消息..."
+                  disabled={chatLoading}
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    border: `2px solid ${palette.border}`,
+                    fontSize: 14,
+                    background: palette.bg,
+                    color: palette.text
+                  }}
+                />
+                <button className="btn-primary" onClick={handleChat} disabled={chatLoading}>
+                  {chatLoading ? '发送中...' : '发送'}
+                </button>
+                <button className="btn-secondary" onClick={clearChat}>
+                  清空
+                </button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !chatLoading && handleChat()}
-                placeholder="输入消息..."
-                disabled={chatLoading}
+
+            {showHistory && (
+              <div
                 style={{
-                  flex: 1,
-                  padding: '12px 16px',
+                  width: 280,
+                  flexShrink: 0,
+                  background: palette.bgCard,
                   borderRadius: 12,
-                  border: `2px solid ${palette.border}`,
-                  fontSize: 14,
-                  background: palette.bg,
-                  color: palette.text
+                  border: `1px solid ${palette.border}`,
+                  padding: 16,
+                  maxHeight: 520,
+                  overflowY: 'auto'
                 }}
-              />
-              <button className="btn-primary" onClick={handleChat} disabled={chatLoading}>
-                {chatLoading ? '发送中...' : '发送'}
-              </button>
-              <button className="btn-secondary" onClick={clearChat}>
-                清空
-              </button>
-            </div>
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <span style={{ fontWeight: 600, color: palette.text, fontSize: 14 }}>📜 历史记录</span>
+                  <button
+                    onClick={fetchServerHistory}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: palette.primary,
+                      fontSize: 12,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    刷新
+                  </button>
+                </div>
+                {historyLoading ? (
+                  <div style={{ textAlign: 'center', padding: 20, color: palette.textSecondary, fontSize: 13 }}>
+                    加载中...
+                  </div>
+                ) : chatHistory.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 20, color: palette.textSecondary, fontSize: 13 }}>
+                    暂无历史记录
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {chatHistory.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => useHistoryItem(item)}
+                        style={{
+                          padding: 12,
+                          background: palette.bg,
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          border: `1px solid ${palette.border}`,
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = palette.primary
+                          e.currentTarget.style.background = `${palette.primary}10`
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = palette.border
+                          e.currentTarget.style.background = palette.bg
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 13,
+                            color: palette.text,
+                            marginBottom: 4,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontWeight: 500
+                          }}
+                        >
+                          {item.user_message.slice(0, 30)}...
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: palette.textSecondary,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          {new Date(item.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

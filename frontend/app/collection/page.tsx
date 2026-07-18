@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase, safeSupabaseQuery } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { useThemeContext } from '../ThemeProvider'
 import PromptCard from '@/components/PromptCard'
@@ -14,23 +13,33 @@ export default function CollectionPage() {
   const [collections, setCollections] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showLoginPopup, setShowLoginPopup] = useState(false)
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const { palette } = useThemeContext()
 
   useEffect(() => {
-    if (user) {
+    if (user && token) {
       fetchCollections()
     }
-  }, [user])
+  }, [user, token])
 
   const fetchCollections = async () => {
+    if (!token) return
     setLoading(true)
-    const result = await safeSupabaseQuery(
-      supabase.from('collections').select('*, prompts(*)').eq('user_id', user!.id).order('created_at', { ascending: false })
-    )
-    if (result.success && result.data) {
-      const data = result.data as any[]
-      setCollections(data.map(c => c.prompts).filter(Boolean))
+    try {
+      const res = await fetch(`/api/collections?user_id=${user!.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const result = await res.json()
+      if (result.success && result.data) {
+        const collectionsList = result.data.data || result.data || []
+        const prompts = collectionsList.map((c: any) => c.prompts).filter(Boolean)
+        setCollections(prompts)
+      }
+    } catch (e) {
+      console.error('Fetch collections error:', e)
     }
     setLoading(false)
   }

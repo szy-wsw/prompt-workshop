@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ThemeProvider } from './ThemeProvider'
 import { AuthProvider, useAuth } from '@/lib/auth'
-import { supabase, safeSupabaseQuery } from '@/lib/supabase'
+import { safeFetch } from '@/lib/supabase'
 import LoginPopup from '@/components/LoginPopup'
 import Toast, { showToast } from '@/components/Toast'
 import { useThemeContext } from './ThemeProvider'
@@ -56,12 +56,14 @@ function UserMenu() {
       setShowLoginPopup(true)
       return
     }
-    const result = await safeSupabaseQuery(
-      supabase.from('prompts').select('*').eq('author_id', user.id)
-    )
+    const token = localStorage.getItem('auth_token')
+    const result = await safeFetch(`/api/prompts?user_id=${user.id}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    })
     if (result.success && result.data) {
-      const prompts = result.data as any[]
-      const content = prompts.map(p => `## ${p.title}\n\n${p.content}\n\n---`).join('\n\n')
+      const responseData: any = result.data
+      const prompts = Array.isArray(responseData) ? responseData : (responseData.data || [])
+      const content = prompts.map((p: any) => `## ${p.title}\n\n${p.content}\n\n---`).join('\n\n')
       const blob = new Blob([content], { type: 'text/markdown' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -283,6 +285,26 @@ function FloatingButton() {
   const [showLoginPopup, setShowLoginPopup] = useState(false)
   const router = useRouter()
   const { palette } = useThemeContext()
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
+
+  const toggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setShowMenu(!showMenu)
+  }
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -298,127 +320,127 @@ function FloatingButton() {
     router.push('/prompt')
   }
 
+  const handleAIChat = () => {
+    setShowMenu(false)
+    if (!user) {
+      setShowLoginPopup(true)
+      return
+    }
+    router.push('/ai-workspace')
+  }
+
   const handleExport = async () => {
     setShowMenu(false)
     if (!user) {
       setShowLoginPopup(true)
       return
     }
-    const result = await safeSupabaseQuery(
-      supabase.from('prompts').select('*').eq('author_id', user.id)
-    )
-    if (result.success && result.data) {
-      const prompts = result.data as any[]
-      const content = prompts.map(p => `## ${p.title}\n\n${p.content}\n\n---`).join('\n\n')
-      const blob = new Blob([content], { type: 'text/markdown' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `prompts_${Date.now()}.md`
-      a.click()
-      URL.revokeObjectURL(url)
-      showToast('批量导出成功', 'success')
-    } else {
-      showToast(result.error || '导出失败', 'error')
+    const token = localStorage.getItem('auth_token')
+    try {
+      const res = await fetch('/api/prompts?user_id=' + user.id, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
+      const result = await res.json()
+      if (result.success && result.data) {
+        const prompts = result.data.data || result.data || []
+        const content = prompts.map((p: any) => `## ${p.title}\n\n${p.content}\n\n---`).join('\n\n')
+        const blob = new Blob([content], { type: 'text/markdown' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `prompts_${Date.now()}.md`
+        a.click()
+        URL.revokeObjectURL(url)
+        showToast('批量导出成功', 'success')
+      } else {
+        showToast(result.message || '导出失败', 'error')
+      }
+    } catch (e) {
+      showToast('导出失败', 'error')
     }
   }
+
+  const handleItemClick = (onClick: () => void, e: React.MouseEvent) => {
+    e.stopPropagation()
+    onClick()
+  }
+
+  const menuItems = [
+    { icon: '✏️', label: '新建提示词', onClick: handleNewPrompt, primary: true },
+    { icon: '🤖', label: 'AI对话', onClick: handleAIChat, primary: true },
+    { icon: '📥', label: '批量导出', onClick: handleExport },
+    { icon: '↑', label: '回到顶部', onClick: scrollToTop },
+  ]
 
   return (
     <>
       <div
+        ref={menuRef}
         style={{
           position: 'fixed',
           bottom: 30,
           right: 30,
           zIndex: 1000
         }}
-        onMouseEnter={() => setShowMenu(true)}
-        onMouseLeave={() => setShowMenu(false)}
       >
         {showMenu && (
           <div
             style={{
               position: 'absolute',
-              bottom: 70,
+              bottom: 75,
               right: 0,
               display: 'flex',
               flexDirection: 'column',
-              gap: 12,
-              animation: 'fadeIn 0.2s ease'
+              gap: 10,
+              animation: 'fadeInUp 0.2s ease'
             }}
           >
-            <button
-              onClick={handleNewPrompt}
-              style={{
-                width: 50,
-                height: 50,
-                borderRadius: '50%',
-                background: palette.primary,
-                color: 'white',
-                fontSize: 20,
-                boxShadow: '0 4px 12px rgba(167, 139, 250, 0.4)',
-                transition: 'transform 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px) scale(1.1)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(1)' }}
-              title="新建提示词"
-            >
-              ✏️
-            </button>
-            <button
-              onClick={handleExport}
-              style={{
-                width: 50,
-                height: 50,
-                borderRadius: '50%',
-                background: palette.bgCard,
-                color: palette.text,
-                fontSize: 18,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                transition: 'transform 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                border: `1px solid ${palette.border}`
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px) scale(1.1)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(1)' }}
-              title="批量导出"
-            >
-              📥
-            </button>
-            <button
-              onClick={scrollToTop}
-              style={{
-                width: 50,
-                height: 50,
-                borderRadius: '50%',
-                background: palette.bgCard,
-                color: palette.text,
-                fontSize: 18,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                transition: 'transform 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                border: `1px solid ${palette.border}`
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px) scale(1.1)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(1)' }}
-              title="回到顶部"
-            >
-              ↑
-            </button>
+            {menuItems.map((item, index) => (
+              <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end' }}>
+                <span style={{
+                  background: palette.bgCard,
+                  color: palette.text,
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  boxShadow: palette.shadow,
+                  border: `1px solid ${palette.border}`,
+                  whiteSpace: 'nowrap'
+                }}>
+                  {item.label}
+                </span>
+                <button
+                  onClick={(e) => handleItemClick(item.onClick, e)}
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: '50%',
+                    background: item.primary ? palette.primary : palette.bgCard,
+                    color: item.primary ? 'white' : palette.text,
+                    fontSize: 20,
+                    boxShadow: item.primary
+                      ? '0 4px 12px rgba(167, 139, 250, 0.4)'
+                      : '0 4px 12px rgba(0,0,0,0.1)',
+                    transition: 'transform 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    border: item.primary ? 'none' : `1px solid ${palette.border}`
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+                >
+                  {item.icon}
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
         <button
+          onClick={toggleMenu}
+          title={showMenu ? '收起菜单' : '展开快捷功能'}
           style={{
             width: 60,
             height: 60,
@@ -427,14 +449,16 @@ function FloatingButton() {
             color: 'white',
             fontSize: 28,
             boxShadow: '0 6px 24px rgba(167, 139, 250, 0.4)',
-            transition: 'transform 0.2s',
+            transition: 'transform 0.3s',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transform: showMenu ? 'rotate(45deg)' : 'rotate(0deg)',
+            border: 'none'
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'rotate(90deg) scale(1.1)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'rotate(0deg) scale(1)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = showMenu ? 'rotate(45deg) scale(1.1)' : 'scale(1.1)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = showMenu ? 'rotate(45deg)' : 'rotate(0deg)' }}
         >
           +
         </button>
@@ -451,6 +475,7 @@ function Navbar() {
   const navItems = [
     { path: '/', label: '首页', icon: '🏠' },
     { path: '/forum', label: '公共论坛', icon: '🌐' },
+    { path: '/templates', label: '模板库', icon: '📋' },
     { path: '/prompt', label: '我的提示词', icon: '📝' },
     { path: '/collection', label: '我的收藏', icon: '❤️' },
     { path: '/ai-workspace', label: 'AI工作台', icon: '🤖' }

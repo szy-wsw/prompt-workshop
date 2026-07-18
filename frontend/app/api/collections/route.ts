@@ -20,10 +20,20 @@ export async function GET(req: Request) {
     ? await tcbDbQuery('prompts', {}, {})
     : []
 
-  const result = collections.map((col: any) => ({
-    ...col,
-    prompts: prompts.find((p: any) => String(p._id) === String(col.prompt_id)),
-  })).filter((item: any) => item.prompts)
+  const result = collections.map((col: any) => {
+    const prompt = prompts.find((p: any) => String(p._id) === String(col.prompt_id))
+    if (prompt) {
+      const promptAny = prompt as any
+      return {
+        ...col,
+        prompts: {
+          ...promptAny,
+          id: promptAny._id || promptAny.id,
+        },
+      }
+    }
+    return null
+  }).filter(Boolean)
 
   return successResponse({ data: result, total: result.length })
 }

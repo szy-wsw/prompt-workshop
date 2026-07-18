@@ -1,28 +1,32 @@
 import crypto from 'crypto'
+import cloudbase from '@cloudbase/node-sdk'
+import {
+  memoryDbQuery,
+  memoryDbAdd,
+  memoryDbUpdate,
+  memoryDbDelete,
+  memoryDbCount,
+  memoryDbGetOne,
+} from './memory-db'
 
-const TCB_ENV_ID = process.env.TCB_ENV_ID!
-const TCB_API_BASE = `https://${TCB_ENV_ID}.service.tcloudbase.com/http/invoke`
+const TCB_ENV_ID = process.env.TCB_ENV_ID || ''
 
-interface TcbResponse<T = any> {
-  code: number
-  message: string
-  data: T
+let tcbInstance: any = null
+
+function getTcbInstance() {
+  if (!tcbInstance && TCB_ENV_ID) {
+    try {
+      tcbInstance = cloudbase.init({
+        env: TCB_ENV_ID,
+      })
+    } catch (e) {
+      console.error('TCB init failed:', e)
+    }
+  }
+  return tcbInstance
 }
 
-export async function tcbInvoke<T>(
-  action: string,
-  params: Record<string, unknown>
-): Promise<TcbResponse<T>> {
-  const res = await fetch(TCB_API_BASE, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-TCB-ENV': TCB_ENV_ID,
-    },
-    body: JSON.stringify({ action, params }),
-  })
-  return res.json()
-}
+const USE_TCB = !!TCB_ENV_ID && process.env.NODE_ENV === 'production'
 
 export async function tcbDbQuery<T>(
   collection: string,
@@ -32,66 +36,58 @@ export async function tcbDbQuery<T>(
     offset?: number; 
     orderBy?: string; 
     orderDirection?: 'asc' | 'desc';
-    orConditions?: Record<string, unknown>[][];
     searchFields?: string[];
     searchValue?: string;
     containsField?: string;
     containsValue?: any;
   } = {}
 ): Promise<T[]> {
-  const filter: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(query)) {
-    filter[key] = { $eq: value }
+  if (USE_TCB) {
+    const tcb = getTcbInstance()
+    if (!tcb) return memoryDbQuery<T>(collection, query, options)
+    
+    const db = tcb.database()
+    let result = db.collection(collection).where(query as any)
+    
+    if (options.orderBy) {
+      result = result.orderBy(options.orderBy, options.orderDirection || 'desc')
+    }
+    if (options.offset) {
+      result = result.skip(options.offset)
+    }
+    if (options.limit) {
+      result = result.limit(options.limit)
+    }
+    
+    try {
+      const { data } = await result.get()
+      return data.map((item: any) => ({ ...item, id: item._id || item.id })) as T[]
+    } catch (e) {
+      console.error('TCB query error:', e)
+      return memoryDbQuery<T>(collection, query, options)
+    }
   }
-
-  if (options.orConditions && options.orConditions.length > 0) {
-    filter['$or'] = options.orConditions.map(conds => {
-      const orFilter: Record<string, unknown> = {}
-      for (const [key, value] of Object.entries(conds)) {
-        orFilter[key] = { $regex: new RegExp(String(value), 'i') }
-      }
-      return orFilter
-    })
-  }
-
-  if (options.searchFields && options.searchValue) {
-    filter['$or'] = options.searchFields.map(field => ({
-      [field]: { $regex: new RegExp(String(options.searchValue), 'i') }
-    }))
-  }
-
-  if (options.containsField && options.containsValue) {
-    filter[options.containsField] = { $all: Array.isArray(options.containsValue) ? options.containsValue : [options.containsValue] }
-  }
-
-  const params: Record<string, unknown> = {
-    collection_name: collection,
-    query: filter,
-  }
-
-  if (options.limit) params.limit = options.limit
-  if (options.offset) params.offset = options.offset
-  if (options.orderBy) {
-    params.orderBy = [{ field: options.orderBy, direction: options.orderDirection || 'desc' }]
-  }
-
-  const res = await tcbInvoke<T[]>('database.query', params)
-  if (res.code !== 0) throw new Error(res.message || 'TCB查询失败')
-  return res.data || []
+  return memoryDbQuery<T>(collection, query, options)
 }
 
 export async function tcbDbAdd<T>(
   collection: string,
   data: Record<string, unknown>
 ): Promise<T> {
-  const params = {
-    collection_name: collection,
-    record: data,
+  if (USE_TCB) {
+    const tcb = getTcbInstance()
+    if (!tcb) return memoryDbAdd<T>(collection, data)
+    
+    const db = tcb.database()
+    try {
+      const { _id } = await db.collection(collection).add({ data })
+      return { _id, ...data } as T
+    } catch (e) {
+      console.error('TCB add error:', e)
+      return memoryDbAdd<T>(collection, data)
+    }
   }
-
-  const res = await tcbInvoke<T>('database.add', params)
-  if (res.code !== 0) throw new Error(res.message || 'TCB插入失败')
-  return res.data
+  return memoryDbAdd<T>(collection, data)
 }
 
 export async function tcbDbUpdate<T>(
@@ -99,66 +95,82 @@ export async function tcbDbUpdate<T>(
   query: Record<string, unknown>,
   data: Record<string, unknown>
 ): Promise<T> {
-  const filter: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(query)) {
-    filter[key] = { $eq: value }
+  if (USE_TCB) {
+    const tcb = getTcbInstance()
+    if (!tcb) return memoryDbUpdate<T>(collection, query, data)
+    
+    const db = tcb.database()
+    try {
+      const { stats } = await db.collection(collection).where(query as any).update({ data })
+      return { updated: stats.updated } as T
+    } catch (e) {
+      console.error('TCB update error:', e)
+      return memoryDbUpdate<T>(collection, query, data)
+    }
   }
-
-  const params = {
-    collection_name: collection,
-    query: filter,
-    update: data,
-  }
-
-  const res = await tcbInvoke<T>('database.update', params)
-  if (res.code !== 0) throw new Error(res.message || 'TCB更新失败')
-  return res.data
+  return memoryDbUpdate<T>(collection, query, data)
 }
 
 export async function tcbDbDelete(
   collection: string,
   query: Record<string, unknown>
 ): Promise<void> {
-  const filter: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(query)) {
-    filter[key] = { $eq: value }
+  if (USE_TCB) {
+    const tcb = getTcbInstance()
+    if (!tcb) return memoryDbDelete(collection, query)
+    
+    const db = tcb.database()
+    try {
+      await db.collection(collection).where(query as any).remove()
+    } catch (e) {
+      console.error('TCB delete error:', e)
+      return memoryDbDelete(collection, query)
+    }
   }
-
-  const params = {
-    collection_name: collection,
-    query: filter,
-  }
-
-  const res = await tcbInvoke('database.delete', params)
-  if (res.code !== 0) throw new Error(res.message || 'TCB删除失败')
+  return memoryDbDelete(collection, query)
 }
 
 export async function tcbDbCount(
   collection: string,
   query: Record<string, unknown> = {}
 ): Promise<number> {
-  const filter: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(query)) {
-    filter[key] = { $eq: value }
+  if (USE_TCB) {
+    const tcb = getTcbInstance()
+    if (!tcb) return memoryDbCount(collection, query)
+    
+    const db = tcb.database()
+    try {
+      const { total } = await db.collection(collection).where(query as any).count()
+      return total
+    } catch (e) {
+      console.error('TCB count error:', e)
+      return memoryDbCount(collection, query)
+    }
   }
-
-  const params = {
-    collection_name: collection,
-    query: filter,
-    aggregate: [{ $count: { as: 'total' } }],
-  }
-
-  const res = await tcbInvoke<{ list: { total: number }[] }>('database.aggregate', params)
-  if (res.code !== 0) throw new Error(res.message || 'TCB统计失败')
-  return res.data?.list?.[0]?.total || 0
+  return memoryDbCount(collection, query)
 }
 
 export async function tcbDbGetOne<T>(
   collection: string,
   query: Record<string, unknown>
 ): Promise<T | null> {
-  const results = await tcbDbQuery<T>(collection, query, { limit: 1 })
-  return results[0] || null
+  if (USE_TCB) {
+    const tcb = getTcbInstance()
+    if (!tcb) return memoryDbGetOne<T>(collection, query)
+    
+    const db = tcb.database()
+    try {
+      const { data } = await db.collection(collection).where(query as any).limit(1).get()
+      if (data.length > 0) {
+        return { ...data[0], id: data[0]._id || data[0].id } as T
+      }
+      return null
+    } catch (e) {
+      console.error('TCB getOne error:', e)
+      return memoryDbGetOne<T>(collection, query)
+    }
+  }
+  return memoryDbGetOne<T>(collection, query)
 }
 
 export function jsonResponse(body: Record<string, unknown>, status = 200) {

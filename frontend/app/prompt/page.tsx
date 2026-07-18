@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase, safeSupabaseQuery } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { useThemeContext } from '../ThemeProvider'
 import PromptCard from '@/components/PromptCard'
@@ -23,22 +22,32 @@ export default function PromptPage() {
     tags: '',
     visibility: 'private' as 'private' | 'public'
   })
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const { palette } = useThemeContext()
 
   useEffect(() => {
-    if (user) {
+    if (user && token) {
       fetchPrompts()
     }
-  }, [user])
+  }, [user, token])
 
   const fetchPrompts = async () => {
+    if (!token || !user) return
     setLoading(true)
-    const result = await safeSupabaseQuery(
-      supabase.from('prompts').select('*').eq('author_id', user!.id).order('created_at', { ascending: false })
-    )
-    if (result.success && result.data) {
-      setPrompts(result.data as any[])
+    try {
+      const res = await fetch(`/api/prompts?user_id=${user.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const result = await res.json()
+      if (result.success && result.data) {
+        const promptsList = result.data.data || result.data || []
+        setPrompts(promptsList)
+      }
+    } catch (e) {
+      console.error('Fetch prompts error:', e)
     }
     setLoading(false)
   }
@@ -74,39 +83,54 @@ export default function PromptPage() {
     const tags = formData.tags.split(',').map(t => t.trim()).filter(t => t)
 
     if (editingPrompt) {
-      const result = await safeSupabaseQuery(
-        supabase.from('prompts').update({
-          title: formData.title,
-          content: formData.content,
-          tags,
-          visibility: formData.visibility,
-          updated_at: new Date().toISOString()
-        }).eq('id', editingPrompt.id)
-      )
-      if (result.success) {
-        showToast('更新成功', 'success')
-        fetchPrompts()
-      } else {
-        showToast(result.error || '更新失败', 'error')
+      try {
+        const res = await fetch(`/api/prompts/${editingPrompt._id || editingPrompt.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: formData.title,
+            content: formData.content,
+            tags,
+            visibility: formData.visibility,
+          })
+        })
+        const result = await res.json()
+        if (result.success) {
+          showToast('更新成功', 'success')
+          fetchPrompts()
+        } else {
+          showToast(result.message || '更新失败', 'error')
+        }
+      } catch (e) {
+        showToast('更新失败', 'error')
       }
     } else {
-      const result = await safeSupabaseQuery(
-        supabase.from('prompts').insert({
-          title: formData.title,
-          content: formData.content,
-          tags,
-          visibility: formData.visibility,
-          author_id: user!.id,
-          likes_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+      try {
+        const res = await fetch('/api/prompts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: formData.title,
+            content: formData.content,
+            tags,
+            visibility: formData.visibility,
+          })
         })
-      )
-      if (result.success) {
-        showToast('创建成功', 'success')
-        fetchPrompts()
-      } else {
-        showToast(result.error || '创建失败', 'error')
+        const result = await res.json()
+        if (result.success) {
+          showToast('创建成功', 'success')
+          fetchPrompts()
+        } else {
+          showToast(result.message || '创建失败', 'error')
+        }
+      } catch (e) {
+        showToast('创建失败', 'error')
       }
     }
     setShowEditModal(false)

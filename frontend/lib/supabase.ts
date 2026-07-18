@@ -109,6 +109,10 @@ class QueryBuilder {
     return this
   }
 
+  limit(_limit: number) {
+    return this
+  }
+
   async execute() {
     if (this.table === 'prompts') {
       const params: string[] = []
@@ -121,6 +125,8 @@ class QueryBuilder {
             params.push(`visibility=${encodeURIComponent(filter.value)}`)
           } else if (filter.column === 'id') {
             params.push(`prompt_id=${encodeURIComponent(filter.value)}`)
+          } else if (filter.column === 'tags') {
+            params.push(`tag=${encodeURIComponent(filter.value)}`)
           }
         } else if (filter.type === 'ilike') {
           params.push(`search=${encodeURIComponent(filter.value.replace(/%/g, ''))}`)
@@ -172,6 +178,10 @@ class QueryBuilder {
 
     return { data: [], error: '不支持的表' }
   }
+
+  then(resolve: (value: any) => void, reject: (reason?: any) => void) {
+    return this.execute().then(resolve, reject)
+  }
 }
 
 class TableBuilder {
@@ -187,50 +197,67 @@ class TableBuilder {
 
   insert(data: any) {
     return {
-      execute: async () => {
-        if (this.table === 'prompts') {
-          const result = await safeFetch('/api/prompts', {
-            method: 'POST',
-            body: JSON.stringify(data)
-          })
-          return { data: result.data, error: result.error }
+      eq: () => ({
+        then: (resolve: (value: any) => void, reject: (reason?: any) => void) => {
+          return this.doInsert(data).then(resolve, reject)
         }
-        return { data: null, error: '不支持的操作' }
+      }),
+      then: (resolve: (value: any) => void, reject: (reason?: any) => void) => {
+        return this.doInsert(data).then(resolve, reject)
       }
     }
+  }
+
+  private async doInsert(data: any) {
+    if (this.table === 'prompts') {
+      const result = await safeFetch('/api/prompts', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      })
+      return { data: result.data, error: result.error }
+    }
+    return { data: null, error: '不支持的操作' }
   }
 
   update(data: any) {
     return {
       eq: (column: string, value: any) => ({
-        execute: async () => {
-          if (this.table === 'prompts' && column === 'id') {
-            const result = await safeFetch(`/api/prompts/${value}`, {
-              method: 'PUT',
-              body: JSON.stringify(data)
-            })
-            return { data: result.data, error: result.error }
-          }
-          return { data: null, error: '不支持的操作' }
+        then: (resolve: (value: any) => void, reject: (reason?: any) => void) => {
+          return this.doUpdate(data, column, value).then(resolve, reject)
         }
       })
     }
   }
 
+  private async doUpdate(data: any, column: string, value: any) {
+    if (this.table === 'prompts' && column === 'id') {
+      const result = await safeFetch(`/api/prompts/${value}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      })
+      return { data: result.data, error: result.error }
+    }
+    return { data: null, error: '不支持的操作' }
+  }
+
   delete() {
     return {
       eq: (column: string, value: any) => ({
-        execute: async () => {
-          if (this.table === 'prompts' && column === 'id') {
-            const result = await safeFetch(`/api/prompts/${value}`, {
-              method: 'DELETE'
-            })
-            return { data: result.data, error: result.error }
-          }
-          return { data: null, error: '不支持的操作' }
+        then: (resolve: (value: any) => void, reject: (reason?: any) => void) => {
+          return this.doDelete(column, value).then(resolve, reject)
         }
       })
     }
+  }
+
+  private async doDelete(column: string, value: any) {
+    if (this.table === 'prompts' && column === 'id') {
+      const result = await safeFetch(`/api/prompts/${value}`, {
+        method: 'DELETE'
+      })
+      return { data: result.data, error: result.error }
+    }
+    return { data: null, error: '不支持的操作' }
   }
 }
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase, safeSupabaseQuery } from '@/lib/supabase'
 import { useThemeContext } from '../ThemeProvider'
 import PromptCard from '@/components/PromptCard'
 import Skeleton from '@/components/Skeleton'
@@ -33,38 +32,40 @@ export default function ForumPage() {
 
   const fetchPrompts = async (currentPage: number) => {
     setLoading(true)
-    let query = supabase.from('prompts').select('*, profiles(nickname, avatar_url)', { count: 'exact' }).eq('visibility', 'public').order('created_at', { ascending: false })
+    try {
+      const params = new URLSearchParams()
+      params.set('visibility', 'public')
+      params.set('page', String(currentPage))
+      params.set('per_page', String(perPage))
+      if (search) params.set('search', search)
+      if (tagFilter) params.set('tag', tagFilter)
 
-    if (search) {
-      query = query.ilike('title', `%${search}%`)
-    }
-    if (tagFilter) {
-      query = query.contains('tags', [tagFilter])
-    }
+      const res = await fetch(`/api/prompts?${params.toString()}`)
+      const result = await res.json()
 
-    const offset = (currentPage - 1) * perPage
-    const result = await safeSupabaseQuery(query.range(offset, offset + perPage - 1))
-    if (result.success && result.data) {
-      setPrompts(result.data as any[])
-      // 获取总数需要单独查询，这里简化处理
-      const countResult = await safeSupabaseQuery(
-        supabase.from('prompts').select('*', { count: 'exact', head: true }).eq('visibility', 'public')
-      )
-      if (countResult.success && (countResult.data as any)?.count !== undefined) {
-        setTotalCount((countResult.data as any).count || 0)
+      if (result.success && result.data) {
+        const promptsList = result.data.data || result.data || []
+        setPrompts(promptsList)
+        setTotalCount(result.data.total || 0)
       }
+    } catch (e) {
+      console.error('Fetch prompts error:', e)
     }
     setLoading(false)
   }
 
   const fetchTags = async () => {
-    const result = await safeSupabaseQuery(
-      supabase.from('prompts').select('tags').eq('visibility', 'public')
-    )
-    if (result.success && result.data) {
-      const allTags = (result.data as any[]).flatMap(p => p.tags || [])
-      const uniqueTags = [...new Set(allTags)].slice(0, 15)
-      setTags(uniqueTags)
+    try {
+      const res = await fetch('/api/prompts?visibility=public&per_page=50')
+      const result = await res.json()
+      if (result.success && result.data) {
+        const promptsList = result.data.data || result.data || []
+        const allTags = (promptsList as any[]).flatMap((p: any) => p.tags || [])
+        const uniqueTags = [...new Set(allTags as string[])].slice(0, 15)
+        setTags(uniqueTags as string[])
+      }
+    } catch (e) {
+      console.error('Fetch tags error:', e)
     }
   }
 

@@ -1,4 +1,4 @@
-import { verifyAuth, errorResponse, handleOptions, SILICONFLOW_API_KEY, SILICONFLOW_BASE_URL, FREE_MODEL_ID } from '@/lib/supabase-server'
+import { tcbDbAdd, verifyAuth, errorResponse, handleOptions, SILICONFLOW_API_KEY, SILICONFLOW_BASE_URL, FREE_MODEL_ID } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -14,7 +14,6 @@ export async function POST(req: Request) {
   const { userId, error } = await verifyAuth(req)
   if (error) return errorResponse(error, 401)
 
-  // 限流
   const now = Date.now()
   const record = rateLimitStore.get(userId)
   if (!record) {
@@ -36,11 +35,15 @@ export async function POST(req: Request) {
     const body = await req.json()
     const messages = body?.messages ?? []
     const prompt = body?.prompt ?? ''
+    const conversationId = body?.conversation_id || null
+    const saveHistory = body?.save_history !== false
 
     if (prompt && messages.length === 0) {
       messages.push({ role: 'user', content: prompt })
     }
     if (messages.length === 0) return errorResponse('请输入内容')
+
+    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || ''
 
     const sfRes = await fetch(`${SILICONFLOW_BASE_URL}/chat/completions`, {
       method: 'POST',
@@ -60,11 +63,13 @@ export async function POST(req: Request) {
     if (sfRes.status === 429) return errorResponse('AI访问繁忙，请稍后重试', 429)
     if (!sfRes.ok) return errorResponse(`AI服务异常(${sfRes.status})`, 502)
 
+    let fullResponse = ''
+    const encoder = new TextEncoder()
+
     const stream = new ReadableStream({
       async start(controller) {
         const reader = sfRes.body!.getReader()
         const decoder = new TextDecoder()
-        const encoder = new TextEncoder()
         try {
           while (true) {
             const { done, value } = await reader.read()
@@ -83,6 +88,7 @@ export async function POST(req: Request) {
                 const content = delta?.content ?? ''
                 const finish = parsed?.choices?.[0]?.finish_reason
                 if (content) {
+                  fullResponse += content
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: content, done: false })}\n\n`))
                 }
                 if (finish) {
@@ -96,6 +102,22 @@ export async function POST(req: Request) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg, done: true })}\n\n`))
         } finally {
           controller.close()
+          
+          if (saveHistory && fullResponse && userId) {
+            try {
+              const now = new Date().toISOString()
+              await tcbDbAdd('chat_history', {
+                user_id: userId,
+                conversation_id: conversationId,
+                user_message: lastUserMessage,
+                ai_response: fullResponse,
+                model: FREE_MODEL_ID,
+                created_at: now,
+              })
+            } catch (saveErr) {
+              console.error('Save chat history error:', saveErr)
+            }
+          }
         }
       },
     })
