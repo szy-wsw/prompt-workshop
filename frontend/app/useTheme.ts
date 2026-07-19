@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react'
 import { themePalettes, ThemeMode, defaultTheme, ThemePalette } from './theme'
 
+function getStoredTheme(): ThemeMode {
+  if (typeof window === 'undefined') return defaultTheme
+  const saved = localStorage.getItem('theme') as ThemeMode | null
+  if (saved && themePalettes[saved]) {
+    return saved
+  }
+  return defaultTheme
+}
+
 export function useTheme() {
-  const [mode, setMode] = useState<ThemeMode>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme') as ThemeMode | null
-      return saved || defaultTheme
-    }
-    return defaultTheme
-  })
+  const [mode, setMode] = useState<ThemeMode>(defaultTheme)
+
+  useEffect(() => {
+    const stored = getStoredTheme()
+    setMode(stored)
+    applyTheme(themePalettes[stored])
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('theme', mode)

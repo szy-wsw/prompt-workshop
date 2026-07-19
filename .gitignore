@@ -25,19 +25,12 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
-backend/.env
-backend/venv/
-backend/__pycache__/
-backend/*.pyc
-backend/*.pyo
-backend/.pytest_cache/
-backend/.tox/
-
 frontend/.env.local
 frontend/.next/
 frontend/node_modules/
+frontend/out/
+frontend/.cache/
 
-# 待补充截图后再推送的文档
-frontend/prompt_log.md
-frontend/docs/test-report.md
-frontend/docs/code-review.md
+# 待补充截图/域名后再推送的文档
+docs/
+prompt_log.md

@@ -1,7 +1,7 @@
 import {
-  tcbDbUpdate,
-  tcbDbQuery,
-  tcbDbGetOne,
+  dbUpdate,
+  dbQuery,
+  dbGetOne,
   verifyAuth,
   successResponse,
   errorResponse,
@@ -37,11 +37,11 @@ export async function PUT(req: Request) {
   const body = await req.json()
 
   if (body.nickname) {
-    await tcbDbUpdate('users', { id: userId }, {
+    await dbUpdate('users', { id: userId }, {
       nickname: body.nickname,
       updated_at: new Date().toISOString(),
     })
-    const users = await tcbDbQuery('users', { id: userId }, { limit: 1 })
+    const users = await dbQuery('users', { id: userId }, { limit: 1 })
     const user = users[0] as any
     return successResponse({ 
       id: user.id, 
@@ -52,7 +52,7 @@ export async function PUT(req: Request) {
   }
 
   if (body.old_password && body.new_password) {
-    const users = await tcbDbQuery('users', { id: userId }, { limit: 1 })
+    const users = await dbQuery('users', { id: userId }, { limit: 1 })
     if (users.length === 0) return errorResponse('用户不存在')
     const user = users[0] as any
 
@@ -68,7 +68,7 @@ export async function PUT(req: Request) {
     const newSalt = generateSalt()
     const newHashedPassword = hashPassword(body.new_password, newSalt)
 
-    await tcbDbUpdate('users', { id: userId }, {
+    await dbUpdate('users', { id: userId }, {
       password: newHashedPassword,
       salt: newSalt,
       updated_at: new Date().toISOString(),
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
     const avatarUrl = getPublicFileUrl('avatars', filePath)
 
     try {
-      const oldUser = await tcbDbGetOne<any>('users', { id: userId })
+      const oldUser = await dbGetOne<any>('users', { id: userId })
       if (oldUser?.avatar_path) {
         await deleteCloudFile('avatars', oldUser.avatar_path)
       }
@@ -122,7 +122,7 @@ export async function POST(req: Request) {
       console.error('[Avatar] 旧头像清理失败:', e)
     }
 
-    await tcbDbUpdate('users', { id: userId }, {
+    await dbUpdate('users', { id: userId }, {
       avatar: avatarUrl,
       avatar_url: avatarUrl,
       avatar_path: filePath,

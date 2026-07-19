@@ -1,10 +1,19 @@
-import { tcbDbAdd, verifyAuth, errorResponse, handleOptions, SILICONFLOW_API_KEY, SILICONFLOW_BASE_URL, FREE_MODEL_ID } from '@/lib/supabase-server'
+import { dbAdd, verifyAuth, errorResponse, handleOptions, SILICONFLOW_API_KEY, SILICONFLOW_BASE_URL, FREE_MODEL_ID } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
 const RATE_LIMIT = 8
 const RATE_LIMIT_WINDOW = 60
 const rateLimitStore = new Map<string, { count: number; start: number }>()
+
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, value] of rateLimitStore) {
+    if ((now - value.start) / 1000 > RATE_LIMIT_WINDOW * 2) {
+      rateLimitStore.delete(key)
+    }
+  }
+}, RATE_LIMIT_WINDOW * 1000)
 
 export async function OPTIONS() {
   return handleOptions()
@@ -39,6 +48,7 @@ export async function POST(req: Request) {
     const body = await req.json()
     const messages = body?.messages ?? []
     const prompt = body?.prompt ?? ''
+    const model = body?.model ?? FREE_MODEL_ID
     const conversationId = body?.conversation_id || null
     const saveHistory = body?.save_history !== false
 
@@ -56,7 +66,7 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: FREE_MODEL_ID,
+        model,
         messages,
         stream: true,
         max_tokens: 2048,
@@ -65,7 +75,10 @@ export async function POST(req: Request) {
     })
 
     if (sfRes.status === 429) return errorResponse('AI访问繁忙，请稍后重试', 429)
-    if (!sfRes.ok) return errorResponse(`AI服务异常(${sfRes.status})`, 502)
+    if (!sfRes.ok) {
+      const errText = await sfRes.text().catch(() => '')
+      return errorResponse(`AI服务异常(${sfRes.status}): ${errText.slice(0, 150)}`, 502)
+    }
 
     let fullResponse = ''
     const encoder = new TextEncoder()
@@ -84,19 +97,15 @@ export async function POST(req: Request) {
               const jsonStr = line.slice(6).trim()
               if (jsonStr === '[DONE]') {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: '', done: true })}\n\n`))
-                continue
+                break
               }
               try {
                 const parsed = JSON.parse(jsonStr)
                 const delta = parsed?.choices?.[0]?.delta
                 const content = delta?.content ?? ''
-                const finish = parsed?.choices?.[0]?.finish_reason
                 if (content) {
                   fullResponse += content
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: content, done: false })}\n\n`))
-                }
-                if (finish) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: '', done: true })}\n\n`))
                 }
               } catch { /* skip */ }
             }
@@ -110,12 +119,12 @@ export async function POST(req: Request) {
           if (saveHistory && fullResponse && userId) {
             try {
               const now = new Date().toISOString()
-              await tcbDbAdd('chat_history', {
+              await dbAdd('chat_history', {
                 user_id: userId,
                 conversation_id: conversationId,
                 user_message: lastUserMessage,
                 ai_response: fullResponse,
-                model: FREE_MODEL_ID,
+                model,
                 created_at: now,
               })
             } catch (saveErr) {

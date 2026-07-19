@@ -1,4 +1,4 @@
-import { tcbDbQuery, tcbDbUpdate, tcbDbDelete, tcbDbAdd, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { dbQuery, dbUpdate, dbDelete, dbAdd, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -12,7 +12,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const { id } = await params
 
-  const prompts = await tcbDbQuery('prompts', { id: id }, { limit: 1 })
+  const prompts = await dbQuery('prompts', { id: id }, { limit: 1 })
   const existing = prompts[0] as any
   if (!existing) return errorResponse('提示词不存在', 404)
   if (existing.author_id !== userId) return errorResponse('无权限修改', 403)
@@ -20,7 +20,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const body = await req.json()
   const now = new Date().toISOString()
 
-  await tcbDbUpdate('prompts', { id: id }, {
+  await dbUpdate('prompts', { id: id }, {
     title: body.title,
     content: body.content,
     tags: body.tags,
@@ -28,7 +28,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     updated_at: now,
   })
 
-  await tcbDbAdd('prompt_history', {
+  await dbAdd('prompt_history', {
     prompt_id: id,
     title: body.title,
     content: body.content,
@@ -47,15 +47,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   const { id } = await params
 
-  const prompts = await tcbDbQuery('prompts', { id: id }, { limit: 1 })
+  const prompts = await dbQuery('prompts', { id: id }, { limit: 1 })
   const existing = prompts[0] as any
   if (!existing) return errorResponse('提示词不存在', 404)
   if (existing.author_id !== userId) return errorResponse('无权限删除', 403)
 
-  await tcbDbDelete('prompt_history', { prompt_id: id })
-  await tcbDbDelete('likes', { prompt_id: id })
-  await tcbDbDelete('collections', { prompt_id: id })
-  await tcbDbDelete('prompts', { id: id })
+  const now = new Date().toISOString()
+  await dbUpdate('prompts', { id: id }, { deleted_at: now, visibility: 'private' })
 
   return successResponse(null, '删除成功')
 }

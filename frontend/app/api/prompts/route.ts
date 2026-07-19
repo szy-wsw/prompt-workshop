@@ -1,4 +1,4 @@
-import { tcbDbQuery, tcbDbAdd, tcbDbCount, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { dbQuery, dbAdd, dbCount, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -10,7 +10,7 @@ async function attachAuthorProfiles(prompts: any[]): Promise<any[]> {
   const authorIds = [...new Set(prompts.map((p: any) => p.author_id).filter(Boolean))]
   if (authorIds.length === 0) return prompts
 
-  const users = await tcbDbQuery('users', {}, {})
+  const users = await dbQuery('users', { id: authorIds })
   const userMap = new Map(
     (users as any[]).map((u: any) => [
       String(u.id),
@@ -73,19 +73,22 @@ export async function GET(req: Request) {
     options['containsValue'] = tag
   }
 
-  const data = await tcbDbQuery('prompts', query, options as any)
+  const data = await dbQuery('prompts', query, options as any)
+  
+  const filteredData = data.filter((item: any) => !item.deleted_at)
+  
   const countQuery: Record<string, unknown> = { ...query }
 
-  const total = await tcbDbCount('prompts', countQuery)
+  const total = await dbCount('prompts', countQuery)
 
-  const dataWithId = data.map((item: any) => ({
+  const dataWithId = filteredData.map((item: any) => ({
     ...item,
     id: item._id || item.id,
   }))
 
   const dataWithProfiles = await attachAuthorProfiles(dataWithId)
 
-  return successResponse({ data: dataWithProfiles, total })
+  return successResponse({ data: dataWithProfiles, total: filteredData.length })
 }
 
 export async function POST(req: Request) {
@@ -96,7 +99,7 @@ export async function POST(req: Request) {
     const body = await req.json()
     const now = new Date().toISOString()
 
-    const result = await tcbDbAdd<any>('prompts', {
+    const result = await dbAdd<any>('prompts', {
       title: body.title,
       content: body.content,
       tags: body.tags || [],
@@ -109,7 +112,7 @@ export async function POST(req: Request) {
 
     const promptId = result.id || result._id
 
-    await tcbDbAdd('prompt_history', {
+    await dbAdd('prompt_history', {
       prompt_id: promptId,
       title: body.title,
       content: body.content,

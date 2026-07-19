@@ -1,4 +1,4 @@
-import { tcbDbQuery, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { dbQuery, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
   if (!prompt_id) return errorResponse('缺少prompt_id')
 
-  const collections = await tcbDbQuery('collections', { prompt_id, user_id: userId }, { limit: 1 })
+  const collections = await dbQuery('collections', { prompt_id, user_id: userId }, { limit: 1 })
   const collected = collections.length > 0
 
   return successResponse({ collected })

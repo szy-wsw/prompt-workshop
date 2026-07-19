@@ -1,4 +1,4 @@
-import { tcbDbQuery, tcbDbCount, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { dbQuery, dbCount, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -22,8 +22,8 @@ export async function GET(req: Request) {
     offset: (page - 1) * per_page,
   }
 
-  const data = await tcbDbQuery('chat_history', query, options)
-  const total = await tcbDbCount('chat_history', query)
+  const data = await dbQuery('chat_history', query, options)
+  const total = await dbCount('chat_history', query)
 
   const dataWithId = data.map((item: any) => ({
     ...item,

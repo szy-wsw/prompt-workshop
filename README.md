@@ -1,221 +1,184 @@
 # AI提示词管理平台
 
-## 项目简介
+> **项目名称**: Prompt Workshop  
+> **技术栈**: Next.js 16 + Supabase + SiliconFlow AI  
+> **开发状态**: 本地测试完成，待域名解析后部署  
 
-AI提示词管理平台是一个基于 Flask + Next.js + Supabase 的全栈Web应用，提供提示词的创建、编辑、收藏、点赞等管理功能，并集成硅基流动免费大模型实现AI对话能力。
+---
 
-**核心设计理念**：前端完全移除Supabase直连代码，所有数据库请求通过Flask后端中转，内置3次自动重连机制解决国内访问海外数据库超时问题。
+## 一、项目简介
 
-## 功能清单
+AI提示词管理平台是一个基于 Next.js 16 + Supabase 的全栈Web应用，提供提示词的创建、编辑、收藏、点赞等管理功能，并集成硅基流动免费大模型（Qwen2.5-7B-Instruct）实现AI对话能力。
 
-| 模块 | 功能 | 说明 |
+**核心功能**:
+- 用户认证（注册/登录/退出）
+- AI流式对话（限流保护）
+- 提示词管理（CRUD + 标签 + 可见性）
+- 互动功能（点赞/收藏）
+- 个人中心（头像上传/信息修改）
+- 模板库（预设提示词模板）
+- 用户排行榜
+
+---
+
+## 二、技术栈
+
+### 前端
+| 技术 | 版本 | 说明 |
 |------|------|------|
-| 用户认证 | 注册/登录/退出 | 后端中转Supabase Auth，前端无直连 |
-| AI对话 | 流式对话/限流保护 | 硅基流动Qwen2.5-7B-Instruct，单用户8次/分钟 |
-| 健康检测 | 数据库保活 | 防止Supabase闲置清空数据 |
-| 提示词管理 | CRUD操作 | 创建、编辑、删除、查询（已预留接口） |
-| 互动功能 | 点赞/收藏 | 已预留数据库表结构 |
+| Next.js | 16 | App Router 模式 |
+| React | 19 | 用户界面组件 |
+| TypeScript | 5 | 类型安全 |
+| CSS Modules | - | 样式方案 |
 
-## 目录结构
+### 后端/数据库
+| 技术 | 说明 |
+|------|------|
+| Supabase | PostgreSQL 数据库 + 存储 |
+| JWT | 自定义认证 |
 
-```
-prompt-workshop/
-├── backend/
-│   ├── app.py              # Flask主程序（注册/登录/AI/健康接口）
-│   ├── .env                # 环境配置模板
-│   └── venv/               # Python虚拟环境
-├── frontend/
-│   ├── app/                # Next.js页面路由
-│   │   ├── register/page.tsx    # 注册页面
-│   │   ├── login/page.tsx       # 登录页面
-│   │   └── ai-workspace/        # AI工作台
-│   ├── lib/
-│   │   ├── auth.tsx        # 认证上下文（直连后端5000）
-│   │   └── supabase.ts     # 代理层（已移除createClient）
-│   ├── components/         # React组件
-│   ├── next.config.ts      # Next配置
-│   └── .env.local          # 空文件（无Supabase配置）
-├── screenshot/             # 截图存放目录
-│   ├── postman/            # Postman接口测试截图
-│   ├── codereview/         # Code Review截图
-│   └── database/           # 数据库连接截图
-├── README.md
-├── api_doc.md
-├── prompt_shturl.md
-└── code_review.md
-```
+### AI服务
+| 技术 | 模型 |
+|------|------|
+| SiliconFlow | Qwen2.5-7B-Instruct |
 
-## 环境依赖
+### 部署
+| 平台 | 说明 |
+|------|------|
+| Vercel | 线上部署（待域名解析） |
 
-### 后端依赖
-```powershell
-cd D:\prompt-workshop\backend
-venv\Scripts\activate
-pip install flask flask-cors python-dotenv requests
-```
+---
 
-### 前端依赖
-```powershell
-cd D:\prompt-workshop\frontend
+## 三、快速开始
+
+### 3.1 环境要求
+
+- Node.js >= 18.0.0
+- npm >= 9.0.0
+
+### 3.2 安装依赖
+
+```bash
+cd frontend
 npm install
 ```
 
-## 本地启动步骤
+### 3.3 配置环境变量
 
-### 1. 启动后端
-```powershell
-cd D:\prompt-workshop\backend
-venv\Scripts\activate
-python app.py
-```
-启动成功输出：
-```
-🚀 后端服务启动在 http://localhost:5000
-📡 CORS已放行: http://localhost:3000
-📦 数据库: Supabase (service_role密钥 + 3次自动重连)
-🤖 AI模型: Qwen/Qwen2.5-7B-Instruct (硅基流动国内直连)
-```
+创建 `.env.local` 文件：
 
-### 2. 启动前端（新终端）
-```powershell
-cd D:\prompt-workshop\frontend
-npm run dev
-```
-访问地址：`http://localhost:3000`
-
-## 环境配置说明
-
-### backend/.env
 ```env
-# Supabase数据库配置
-SUPABASE_URL=https://your-project.supabase.co
+# Supabase 配置
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# 硅基流动AI配置（国内直连）
-SILICONFLOW_API_KEY=your-api-key
-SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
-FREE_MODEL_ID=Qwen/Qwen2.5-7B-Instruct
+# JWT 密钥
+JWT_SECRET=your-secret-jwt-key
 
-# 代理配置（可选，加速海外Supabase访问）
-HTTP_PROXY=http://127.0.0.1:7890
-HTTPS_PROXY=http://127.0.0.1:7890
+# AI 服务配置
+SILICONFLOW_API_KEY=your-siliconflow-api-key
+FREE_MODEL_ID=qwen/Qwen2.5-7B-Instruct
+
+# 应用 URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### frontend/.env.local
-```
-# 空文件 - 前端不持有任何Supabase配置
-# 所有数据库请求通过后端中转
+### 3.4 初始化数据库
+
+在 Supabase Dashboard 的 SQL Editor 中执行 `frontend/supabase/schema.sql` 脚本。
+
+### 3.5 启动开发服务器
+
+```bash
+npm run dev
 ```
 
-## 接口总览
+访问地址：`http://localhost:3000`
 
-| 接口 | 方法 | 说明 |
+---
+
+## 四、项目结构
+
+```
+prompt-workshop/
+├── frontend/                # Next.js 前端应用
+│   ├── app/                 # 页面路由 + API路由
+│   ├── components/          # React 组件
+│   ├── lib/                 # 工具函数
+│   ├── supabase/            # Supabase 配置
+│   └── tests/               # 测试脚本
+├── docs/                    # 项目文档
+└── README.md
+```
+
+---
+
+## 五、功能清单
+
+| 模块 | 功能 | 状态 |
 |------|------|------|
-| `/api/health` | GET | 健康检测+数据库保活 |
-| `/api/auth/signup` | POST | 用户注册 |
-| `/api/auth/login` | POST | 用户登录 |
-| `/api/auth/me` | GET | 获取当前用户 |
-| `/api/auth/logout` | POST | 退出登录 |
-| `/api/ai/chat` | POST | AI对话（流式） |
-| `/api/ai/status` | GET | AI服务状态 |
+| 用户认证 | 注册/登录/退出 | ✅ |
+| AI对话 | 流式对话/历史记录 | ✅ |
+| 提示词管理 | 创建/编辑/删除/查询 | ✅ |
+| 互动功能 | 点赞/收藏 | ✅ |
+| 个人中心 | 头像上传/信息修改 | ✅ |
+| 模板库 | 预设提示词模板 | ✅ |
+| 用户排行榜 | 按提示词数/点赞数排名 | ✅ |
 
-详细接口文档见 [api_doc.md](./api_doc.md)
+---
 
-## 线上部署说明
+## 六、API接口
 
-### Render平台部署（推荐）
+详细接口文档请查看 [docs/api-reference.md](docs/api-reference.md)
 
-1. **创建Web Service**
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `python app.py`
+---
 
-2. **环境变量配置**
-   ```
-   SUPABASE_URL=你的Supabase地址
-   SUPABASE_SERVICE_ROLE_KEY=你的服务密钥
-   SILICONFLOW_API_KEY=你的硅基密钥
-   SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
-   FREE_MODEL_ID=Qwen/Qwen2.5-7B-Instruct
-   ```
+## 七、文档目录
 
-3. **优势**
-   - 海外服务器，直连Supabase无需代理
-   - 免费额度充足，适合个人项目
+| 文档 | 路径 | 说明 |
+|------|------|------|
+| API接口文档 | `docs/api-reference.md` | 完整接口说明 |
+| 数据库设计 | `docs/database-design.md` | 表结构与关系 |
+| 项目目录结构 | `docs/project-structure.md` | 目录说明 |
+| 本地部署手册 | `docs/local-deployment.md` | 部署指南 |
+| 功能测试报告 | `docs/test-report.md` | 测试用例与结果 |
+| Code Review报告 | `docs/code-review.md` | AI代码审查 |
+| Prompt日志 | `prompt_log.md` | AI提示词使用记录 |
 
-### 前端部署（Vercel）
+---
 
-修改 `frontend/lib/auth.tsx` 中的 `API_BASE`：
-```typescript
-const API_BASE = 'https://your-backend.onrender.com'
-```
+## 八、测试结果
 
-## 常见报错解决方案
+| 测试模块 | 用例数 | 通过 | 失败 | 通过率 |
+|----------|--------|------|------|--------|
+| 用户认证 | 6 | 6 | 0 | 100% |
+| 提示词管理 | 8 | 8 | 0 | 100% |
+| AI对话 | 4 | 4 | 0 | 100% |
+| 互动功能 | 4 | 4 | 0 | 100% |
+| 个人中心 | 3 | 3 | 0 | 100% |
+| **合计** | **25** | **25** | **0** | **100%** |
 
-### 1. Supabase连接超时
+---
 
-**现象**：
-```
-数据库连接失败: HTTPSConnectionPool... Failed to resolve 'xxx.supabase.co'
-```
+## 九、部署说明
 
-**原因**：国内网络无法解析海外域名
+> **注意**: 当前域名未完成解析，部署待后续进行。
 
-**解决方案**：
-- 方案A：在 `backend/.env` 配置代理
-  ```env
-  HTTP_PROXY=http://127.0.0.1:7890
-  HTTPS_PROXY=http://127.0.0.1:7890
-  ```
-- 方案B：部署到Render海外平台
+部署步骤：
+1. 在 Vercel 创建项目，选择 GitHub 仓库
+2. 添加环境变量
+3. 配置自定义域名
+4. 等待 SSL 证书签发
 
-### 2. 数据库1045报错
+---
 
-**现象**：
-```
-(1045, "Access denied for user 'xxx'@'xxx' (using password: YES)")
-```
-
-**原因**：数据库凭据错误或用户权限不足
-
-**解决方案**：
-- 检查 `.env` 中的数据库地址、用户名、密码
-- 确认数据库服务已启动
-- 确认用户有远程访问权限
-
-### 3. 注册400错误
-
-**现象**：前端显示"网络连接失败"
-
-**解决方案**：
-- 确认后端已启动 `http://localhost:5000`
-- 检查CORS配置是否正确
-- 查看后端日志输出的具体错误信息
-
-## 演示录屏说明
-
-录屏文件存放位置：`screenshot/demo.mp4`
-
-录制内容：
-1. 启动后端服务，展示路由清单
-2. 启动前端服务，打开注册页面
-3. 完成用户注册流程
-4. 完成用户登录流程
-5. 进入AI工作台进行对话
-6. 展示健康检测接口返回
-
-## 项目截图说明
-
-- `screenshot/postman/` - Postman接口测试截图
-- `screenshot/codereview/` - Code Review报告截图
-- `screenshot/database/` - 数据库连接/表结构截图
-
-## 技术栈
-
-- **后端**: Flask 2.x + Python 3.10
-- **前端**: Next.js 16 + React 18 + TypeScript
-- **数据库**: Supabase (PostgreSQL)
-- **AI模型**: 硅基流动 Qwen/Qwen2.5-7B-Instruct（永久免费）
-
-## 许可证
+## 十、许可证
 
 MIT License
+
+---
+
+> **文档版本**: v1.0  
+> **更新时间**: 2026-07-18  
+> **备注**: 本文档预留了域名替换位置，待域名解析完成后更新部署地址。

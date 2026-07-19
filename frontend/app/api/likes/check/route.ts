@@ -1,4 +1,4 @@
-import { tcbDbQuery, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { dbQuery, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
   if (!prompt_id) return errorResponse('缺少prompt_id')
 
-  const likes = await tcbDbQuery('likes', { prompt_id, user_id: userId }, { limit: 1 })
+  const likes = await dbQuery('likes', { prompt_id, user_id: userId }, { limit: 1 })
   const liked = likes.length > 0
 
   return successResponse({ liked })

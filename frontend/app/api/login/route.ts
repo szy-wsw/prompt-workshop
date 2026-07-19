@@ -1,11 +1,7 @@
-import { tcbDbQuery, successResponse, errorResponse, handleOptions, generateToken } from '@/lib/supabase-server'
-import crypto from 'crypto'
+import { dbQuery, successResponse, errorResponse, handleOptions, generateToken } from '@/lib/supabase-server'
+import { verifyPassword, validateEmail } from '@/lib/password'
 
 export const runtime = 'nodejs'
-
-function hashPassword(password: string, salt: string): string {
-  return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex')
-}
 
 export async function OPTIONS() {
   return handleOptions()
@@ -15,18 +11,17 @@ export async function POST(req: Request) {
   try {
     const { email, password } = await req.json()
 
-    if (!email?.trim()) return errorResponse('请输入邮箱')
+    if (!validateEmail(email)) return errorResponse('请输入正确的邮箱')
     if (!password) return errorResponse('请输入密码')
 
-    const users = await tcbDbQuery('users', { email })
+    const users = await dbQuery('users', { email })
     if (users.length === 0) {
       return errorResponse('邮箱或密码错误')
     }
 
     const user = users[0] as any
-    const hashedPassword = hashPassword(password, user.salt)
-
-    if (hashedPassword !== user.password) {
+    
+    if (!verifyPassword(password, user.salt, user.password)) {
       return errorResponse('邮箱或密码错误')
     }
 

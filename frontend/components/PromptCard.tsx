@@ -23,11 +23,17 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
   const [showConfirm, setShowConfirm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
+  const [avatarLoading, setAvatarLoading] = useState(true)
   const { user, token } = useAuth()
   const { palette } = useThemeContext()
 
   const promptId = item._id || item.id
   const hasAvatar = item.profiles?.avatar_url && !avatarError
+
+  useEffect(() => {
+    setAvatarLoading(true)
+    setAvatarError(false)
+  }, [item.profiles?.avatar_url])
 
   useEffect(() => {
     if (user && promptId && token) {
@@ -347,8 +353,16 @@ export default function PromptCard({ item, onEdit, onDelete }: PromptCardProps) 
                 <img
                   src={item.profiles.avatar_url}
                   alt="头像"
-                  onError={() => setAvatarError(true)}
-                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                  onLoad={() => setAvatarLoading(false)}
+                  onError={() => { setAvatarLoading(false); setAvatarError(true) }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    opacity: avatarLoading ? 0 : 1,
+                    transition: 'opacity 0.3s ease'
+                  }}
                 />
               ) : item.profiles?.nickname ? (
                 <span style={{ color: 'white', fontWeight: 600 }}>{item.profiles.nickname.charAt(0)}</span>

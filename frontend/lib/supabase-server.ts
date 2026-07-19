@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 import { getAdminClient } from './supabase/admin'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prompt-workshop-tcb-jwt-secret-key'
+const JWT_SECRET = process.env.JWT_SECRET || 'prompt-workshop-jwt-secret-key'
 
 export const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || ''
 export const SILICONFLOW_BASE_URL = 'https://api.siliconflow.cn/v1'
@@ -81,7 +81,7 @@ interface QueryOptions {
   containsValue?: any
 }
 
-export async function tcbDbQuery<T>(
+export async function dbQuery<T>(
   table: string,
   query: Record<string, unknown> = {},
   options: QueryOptions = {}
@@ -91,9 +91,17 @@ export async function tcbDbQuery<T>(
 
   for (const [key, value] of Object.entries(query)) {
     if (key === '_id' || key === 'id') {
-      builder = builder.eq('id', value)
+      if (Array.isArray(value)) {
+        builder = builder.in('id', value)
+      } else {
+        builder = builder.eq('id', value)
+      }
     } else {
-      builder = builder.eq(key, value)
+      if (Array.isArray(value)) {
+        builder = builder.in(key, value)
+      } else {
+        builder = builder.eq(key, value)
+      }
     }
   }
 
@@ -128,7 +136,7 @@ export async function tcbDbQuery<T>(
   return (data || []).map((item: any) => ({ ...item, id: item.id || item._id })) as T[]
 }
 
-export async function tcbDbAdd<T>(
+export async function dbAdd<T>(
   table: string,
   data: Record<string, unknown>
 ): Promise<T> {
@@ -153,7 +161,7 @@ export async function tcbDbAdd<T>(
   return { ...(result as any), id: (result as any).id } as T
 }
 
-export async function tcbDbUpdate<T>(
+export async function dbUpdate<T>(
   table: string,
   query: Record<string, unknown>,
   data: Record<string, unknown>
@@ -185,7 +193,37 @@ export async function tcbDbUpdate<T>(
   return { updated: 1 }
 }
 
-export async function tcbDbDelete(
+export async function dbIncrement(
+  table: string,
+  query: Record<string, unknown>,
+  field: string,
+  amount: number = 1
+): Promise<{ updated: number }> {
+  const supabase = getAdminClient() as any
+
+  let builder: any = supabase.from(table).update({
+    [field]: supabase.raw(`coalesce(${field}, 0) + ${amount}`)
+  })
+
+  for (const [key, value] of Object.entries(query)) {
+    if (key === '_id' || key === 'id') {
+      builder = builder.eq('id', value)
+    } else {
+      builder = builder.eq(key, value)
+    }
+  }
+
+  const { error } = await builder
+
+  if (error) {
+    console.error(`[Supabase Increment Error] ${table}.${field}:`, error)
+    return { updated: 0 }
+  }
+
+  return { updated: 1 }
+}
+
+export async function dbDelete(
   table: string,
   query: Record<string, unknown>
 ): Promise<number> {
@@ -211,7 +249,7 @@ export async function tcbDbDelete(
   return 1
 }
 
-export async function tcbDbCount(
+export async function dbCount(
   table: string,
   query: Record<string, unknown> = {}
 ): Promise<number> {
@@ -237,11 +275,11 @@ export async function tcbDbCount(
   return count || 0
 }
 
-export async function tcbDbGetOne<T>(
+export async function dbGetOne<T>(
   table: string,
   query: Record<string, unknown>
 ): Promise<T | null> {
-  const result = await tcbDbQuery<T>(table, query, { limit: 1 })
+  const result = await dbQuery<T>(table, query, { limit: 1 })
   return result[0] || null
 }
 

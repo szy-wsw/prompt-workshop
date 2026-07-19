@@ -1,4 +1,4 @@
-import { tcbDbCount, verifyAuth, successResponse, handleOptions } from '@/lib/supabase-server'
+import { dbCount, verifyAuth, successResponse, handleOptions } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -13,9 +13,9 @@ export async function GET(req: Request) {
 
   if (type === 'site') {
     const [totalPrompts, totalUsers, publicPrompts] = await Promise.all([
-      tcbDbCount('prompts', {}),
-      tcbDbCount('users', {}),
-      tcbDbCount('prompts', { visibility: 'public' }),
+      dbCount('prompts', {}),
+      dbCount('users', {}),
+      dbCount('prompts', { visibility: 'public' }),
     ])
 
     return successResponse({
@@ -39,9 +39,9 @@ export async function GET(req: Request) {
   const uid = targetUserId || userId
 
   const [totalPrompts, publicPrompts, totalCollections] = await Promise.all([
-    tcbDbCount('prompts', { author_id: uid }),
-    tcbDbCount('prompts', { author_id: uid, visibility: 'public' }),
-    tcbDbCount('collections', { user_id: uid }),
+    dbCount('prompts', { author_id: uid }),
+    dbCount('prompts', { author_id: uid, visibility: 'public' }),
+    dbCount('collections', { user_id: uid }),
   ])
 
   return successResponse({

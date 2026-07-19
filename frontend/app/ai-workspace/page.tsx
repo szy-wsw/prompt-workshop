@@ -66,8 +66,8 @@ export default function AIWorkspacePage() {
   }, [authLoading, user])
 
   useEffect(() => {
+    checkAiStatus()
     if (user) {
-      checkAiStatus()
       fetchModels()
       loadChatHistory()
       fetchServerHistory()
@@ -79,13 +79,23 @@ export default function AIWorkspacePage() {
   }, [messages])
 
   const checkAiStatus = async () => {
-    if (!token) return
-    setAiOnline(true)
+    try {
+      const res = await fetch('/api/ai/status')
+      const result = await res.json()
+      console.log('[AI Status]', result)
+      setAiOnline(result.data?.online === true)
+    } catch (e) {
+      console.error('[AI Status Error]', e)
+      setAiOnline(false)
+    }
   }
 
   const fetchModels = async () => {
-    if (!token) return
-    setModels([{ name: 'Qwen/Qwen2.5-7B-Instruct' }])
+    setModels([
+      { name: 'Qwen/Qwen2.5-7B-Instruct' },
+      { name: 'nex-agi/Nex-N2-Pro' },
+      { name: 'inclusionAI/Ling-flash-2.0' },
+    ])
     setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
   }
 
@@ -167,7 +177,7 @@ export default function AIWorkspacePage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ prompt: testPrompt })
+        body: JSON.stringify({ prompt: testPrompt, model: selectedModel })
       })
 
       if (!response.ok) {
@@ -186,7 +196,8 @@ export default function AIWorkspacePage() {
       const decoder = new TextDecoder()
       let resultText = ''
 
-      while (true) {
+      let streamDone = false
+      while (!streamDone) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -201,6 +212,7 @@ export default function AIWorkspacePage() {
                 setTestResult(resultText)
               }
               if (json.done) {
+                streamDone = true
                 break
               }
             } catch {
@@ -243,7 +255,8 @@ export default function AIWorkspacePage() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content }))
+          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          model: selectedModel
         })
       })
 
@@ -263,7 +276,8 @@ export default function AIWorkspacePage() {
       const decoder = new TextDecoder()
       let aiContent = ''
 
-      while (true) {
+      let streamDone = false
+      while (!streamDone) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -281,6 +295,7 @@ export default function AIWorkspacePage() {
               if (json.done) {
                 const finalMessages = [...newMessages, { role: 'assistant' as const, content: aiContent, timestamp: Date.now() }]
                 saveChatHistory(finalMessages)
+                streamDone = true
                 break
               }
             } catch {
@@ -317,7 +332,21 @@ export default function AIWorkspacePage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ prompt: `请帮我润色优化以下提示词，使其更清晰、更专业、效果更好：\n\n${improvePrompt}` })
+        body: JSON.stringify({
+          prompt: `你是一位专业的提示词优化专家。请帮我优化以下提示词，使其更清晰、更具体、效果更好。
+
+优化要求：
+1. 明确角色设定
+2. 细化任务描述
+3. 添加输出格式要求
+4. 补充约束条件
+5. 保持原意不变
+
+原始提示词：
+${improvePrompt}
+
+请直接输出优化后的完整提示词，不要包含多余的解释。`, model: selectedModel
+        })
       })
 
       if (!response.ok) {
@@ -335,8 +364,9 @@ export default function AIWorkspacePage() {
 
       const decoder = new TextDecoder()
       let resultText = ''
+      let streamDone = false
 
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -346,11 +376,17 @@ export default function AIWorkspacePage() {
           if (line.startsWith('data: ')) {
             try {
               const json = JSON.parse(line.slice(6))
+              if (json.error) {
+                showToast(json.error, 'error')
+                streamDone = true
+                break
+              }
               if (json.response) {
                 resultText += json.response
                 setImproveResult(resultText)
               }
               if (json.done) {
+                streamDone = true
                 break
               }
             } catch {
@@ -439,7 +475,7 @@ export default function AIWorkspacePage() {
             AI服务暂不可用
           </h3>
           <p style={{ color: palette.textSecondary }}>
-            请检查后端配置文件中VOLC_ARK_API_KEY和VOLC_ARK_MODEL_EP是否正确设置
+            请检查前端配置文件中SILICONFLOW_API_KEY是否正确设置
           </p>
           <button className="btn-secondary" onClick={checkAiStatus} style={{ marginTop: 16 }}>
             🔄 重新检测

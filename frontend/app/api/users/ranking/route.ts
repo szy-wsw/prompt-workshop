@@ -1,4 +1,4 @@
-import { tcbDbQuery, successResponse, handleOptions } from '@/lib/supabase-server'
+import { dbQuery, successResponse, handleOptions } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url)
   const limit = parseInt(url.searchParams.get('limit') || '10')
 
-  const users = await tcbDbQuery('users', {}, {
+  const users = await dbQuery('users', {}, {
     orderBy: 'created_at',
     orderDirection: 'desc',
     limit: limit * 2,

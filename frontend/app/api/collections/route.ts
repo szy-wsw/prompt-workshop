@@ -1,4 +1,4 @@
-import { tcbDbQuery, tcbDbAdd, tcbDbDelete, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
+import { dbQuery, dbAdd, dbDelete, verifyAuth, successResponse, errorResponse, handleOptions } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -10,14 +10,14 @@ export async function GET(req: Request) {
   const { userId, error } = await verifyAuth(req)
   if (error) return errorResponse(error, 401)
 
-  const collections = await tcbDbQuery('collections', { user_id: userId }, {
+  const collections = await dbQuery('collections', { user_id: userId }, {
     orderBy: 'created_at',
     orderDirection: 'desc',
   })
 
   const promptIds = collections.map((c: any) => c.prompt_id)
   const prompts = promptIds.length > 0
-    ? await tcbDbQuery('prompts', { visibility: 'public' }, {})
+    ? await dbQuery('prompts', { visibility: 'public' }, {})
     : []
 
   const result = collections.map((col: any) => {
@@ -45,12 +45,12 @@ export async function POST(req: Request) {
   const { prompt_id } = await req.json()
   if (!prompt_id) return errorResponse('缺少prompt_id')
 
-  const existing = await tcbDbQuery('collections', { prompt_id, user_id: userId }, { limit: 1 })
+  const existing = await dbQuery('collections', { prompt_id, user_id: userId }, { limit: 1 })
   if (existing.length > 0) {
     return errorResponse('您已经收藏过啦')
   }
 
-  await tcbDbAdd('collections', { prompt_id, user_id: userId })
+  await dbAdd('collections', { prompt_id, user_id: userId })
 
   return successResponse(null, '收藏成功')
 }
@@ -62,7 +62,7 @@ export async function DELETE(req: Request) {
   const { prompt_id } = await req.json()
   if (!prompt_id) return errorResponse('缺少prompt_id')
 
-  await tcbDbDelete('collections', { prompt_id, user_id: userId })
+  await dbDelete('collections', { prompt_id, user_id: userId })
 
   return successResponse(null, '取消收藏成功')
 }
