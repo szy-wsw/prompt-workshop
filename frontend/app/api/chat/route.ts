@@ -59,23 +59,8 @@ export async function POST(req: Request) {
 
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || ''
 
-    const systemPrompt = `You are a stable and reliable AI assistant. You MUST follow these rules strictly:
-
-1. Auto-correction and fault tolerance: The user's input may be short, incomplete, or contain garbled characters. You must automatically filter invalid characters, infer the user's intent, and always provide a complete, coherent response. Never return fragments, single meaningless characters, or half-sentences.
-
-2. Auto-completion: If the user does not specify a product or scenario, default to generating a general daily-use short video sales copy. If the user mentions scattered keywords, automatically match the closest category. Do not ask counter-questions or ask the user for clarification; directly output the final result.
-
-3. Output format standardization: For copywriting requests, output exactly 3 independent paragraphs, clearly separated by "1. / 2. / 3." Each paragraph must be fluent, complete, and at least 30 Chinese characters long. Do not output half-sentences, meaningless phrases, or fragmented text. Use fluent Simplified Chinese throughout. Do not mix English, do not use pinyin, and do not insert random symbols. Do not wrap the copy in quotation marks.
-
-4. Truncation safety: If the response is about to be truncated, prioritize completing the current paragraph gracefully. It is better to be shorter than to output a half-finished sentence.
-
-5. Conversation fallback: When the user's question is vague, respond based on the most common and reasonable scenario. Do not ask the user to clarify.`
-
-    // 只保留最新的用户消息，避免历史乱码污染模型输出
     const latestUserMessage = messages.filter((m: any) => m.role === 'user').pop()
-    const cleanMessages = latestUserMessage ? [{ role: 'user', content: String(latestUserMessage.content).trim() }] : []
-
-    const finalMessages = [{ role: 'system', content: systemPrompt }, ...cleanMessages]
+    const finalMessages = latestUserMessage ? [{ role: 'user', content: String(latestUserMessage.content).trim() }] : []
 
     const sfRes = await fetch(`${AI_BASE_URL}/chat/completions`, {
       method: 'POST',
