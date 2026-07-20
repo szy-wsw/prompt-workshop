@@ -10,7 +10,7 @@ export const FREE_MODEL_ID = process.env.FREE_MODEL_ID || 'Qwen/Qwen2.5-7B-Instr
 export function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
   })
 }
 
