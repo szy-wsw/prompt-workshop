@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'prompt-workshop-jwt-secret-change-
 
 export const AI_API_KEY = process.env.AI_API_KEY || process.env.SILICONFLOW_API_KEY || ''
 export const AI_BASE_URL = process.env.AI_BASE_URL || 'https://api.siliconflow.cn/v1'
-export const FREE_MODEL_ID = process.env.FREE_MODEL_ID || 'Qwen/Qwen3-8B'
+export const FREE_MODEL_ID = process.env.FREE_MODEL_ID || 'Qwen/Qwen2.5-7B-Instruct'
 
 export function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {

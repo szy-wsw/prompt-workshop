@@ -92,11 +92,11 @@ export default function AIWorkspacePage() {
 
   const fetchModels = async () => {
     setModels([
-      { name: 'Qwen/Qwen3-8B' },
       { name: 'Qwen/Qwen2.5-7B-Instruct' },
-      { name: 'internlm/internlm2_5-7b-chat' },
+      { name: 'Qwen/Qwen2.5-14B-Instruct' },
+      { name: 'THUDM/GLM-4-9B-0414' },
     ])
-    setSelectedModel('Qwen/Qwen3-8B')
+    setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
   }
 
   const fetchServerHistory = async () => {

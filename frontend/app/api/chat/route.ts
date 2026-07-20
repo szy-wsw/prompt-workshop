@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || ''
 
-    const systemPrompt = '你是专业的文案助手。要求：1) 严禁输出任何思考过程、内心独白、计划、解释；2) 直接输出最终成品文案；3) 不要使用 ###、---、【】等分隔符堆砌；4) 输出一律用中文，不用混入英文乱码。'
+    const systemPrompt = '你是一个专业的AI助手，请用中文直接回答用户问题。要求：1) 直接输出最终答案，不要输出思考过程；2) 输出干净通顺的中文，不要夹杂乱码、多余符号或英文碎片；3) 如果是文案类请求，分条输出，每条清晰完整。'
     const finalMessages = [{ role: 'system', content: systemPrompt }, ...messages]
 
     const sfRes = await fetch(`${AI_BASE_URL}/chat/completions`, {
@@ -74,7 +74,6 @@ export async function POST(req: Request) {
         stream: true,
         max_tokens: 2048,
         temperature: 0.7,
-        chat_template_kwargs: { enable_thinking: false },
       }),
     })
 
