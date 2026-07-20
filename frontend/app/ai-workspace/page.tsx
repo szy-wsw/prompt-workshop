@@ -326,41 +326,11 @@ ${improvePrompt}
         return
       }
 
-      const reader = response.body?.getReader()
-      if (!reader) {
-        setImproveLoading(false)
-        return
-      }
-
-      const decoder = new TextDecoder()
-      let resultText = ''
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n\n')
-        buffer = lines.pop() || ''
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed.startsWith('data: ')) continue
-          try {
-            const json = JSON.parse(trimmed.slice(6))
-            if (json.error) {
-              showToast(json.error, 'error')
-              break
-            }
-            if (json.response) {
-              resultText += json.response
-              setImproveResult(cleanAIOutput(resultText))
-            }
-            if (json.done) break
-          } catch {
-            continue
-          }
-        }
+      const result = await response.json()
+      if (result.success && result.data?.response) {
+        setImproveResult(cleanAIOutput(result.data.response))
+      } else {
+        showToast(result.message || '无响应内容', 'error')
       }
     } catch (e: any) {
       showToast(e.message || '网络错误', 'error')
