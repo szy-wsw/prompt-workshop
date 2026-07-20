@@ -212,7 +212,7 @@ grant all privileges on table chat_history to anon;
 npm run dev
 ```
 
-访问 http://localhost:3000 查看应用。
+访问 https://szy050604.top 查看应用。
 
 ## API 接口文档
 
@@ -331,7 +331,7 @@ npm run dev
 
 ### 域名配置
 
-当前域名：szy050604.top（待审核）
+当前域名：szy050604.top（已上线）
 
 ## 贡献
 
@@ -345,4 +345,4 @@ MIT License
 
 **项目状态**: 开发中 ✅  
 **最后更新**: 2026年7月  
-**部署域名**: szy050604.top（待审核）
+**部署域名**: szy050604.top（已上线）
