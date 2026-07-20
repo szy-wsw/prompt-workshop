@@ -12,19 +12,23 @@ function getStoredTheme(): ThemeMode {
 
 export function useTheme() {
   const [mode, setMode] = useState<ThemeMode>(defaultTheme)
+  const [mounted, setMounted] = useState(false)
 
+  // 仅在客户端挂载后读取 localStorage，避免 hydration 不匹配
   useEffect(() => {
     const stored = getStoredTheme()
     setMode(stored)
-    applyTheme(themePalettes[stored])
+    setMounted(true)
   }, [])
 
   useEffect(() => {
+    if (!mounted) return
     localStorage.setItem('theme', mode)
     applyTheme(themePalettes[mode])
-  }, [mode])
+  }, [mode, mounted])
 
   const applyTheme = (palette: ThemePalette) => {
+    if (typeof document === 'undefined') return
     const root = document.documentElement
     Object.entries(palette).forEach(([key, value]) => {
       root.style.setProperty(`--color-${key}`, value)
@@ -35,6 +39,7 @@ export function useTheme() {
     palette: themePalettes[mode],
     mode,
     setMode,
-    themes: themePalettes
+    themes: themePalettes,
+    mounted
   }
 }

@@ -23,10 +23,11 @@ export function errorResponse(message: string, status = 400) {
 }
 
 export function handleOptions() {
+  const origin = process.env.NEXT_PUBLIC_APP_URL || '*'
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
