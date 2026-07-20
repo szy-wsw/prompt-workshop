@@ -59,31 +59,17 @@ export async function POST(req: Request) {
 
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || ''
 
-    const systemPrompt = `你是一个稳定可靠的AI文案与对话助手，必须严格遵守以下输出规则：
+    const systemPrompt = `You are a stable and reliable AI assistant. You MUST follow these rules strictly:
 
-【1. 自动容错清洗】
-- 用户输入可能简短、残缺、无主题、混杂拼音/符号/乱码、语句不通顺
-- 你必须自动过滤无效字符、补齐合理通用场景，绝对不要返回半截碎片、单句乱码、单个无意义字符
-- 即使用户输入几乎看不懂，也要尽力理解意图并给出完整可用输出
+1. Auto-correction and fault tolerance: The user's input may be short, incomplete, or contain garbled characters. You must automatically filter invalid characters, infer the user's intent, and always provide a complete, coherent response. Never return fragments, single meaningless characters, or half-sentences.
 
-【2. 需求自动补全】
-- 用户没有指定具体商品/场景时，默认按"通用日用好物短视频带货文案"生成
-- 用户提到零散关键词时，自动匹配最接近的品类
-- 禁止反问、禁止追问用户，直接输出最终结果
+2. Auto-completion: If the user does not specify a product or scenario, default to generating a general daily-use short video sales copy. If the user mentions scattered keywords, automatically match the closest category. Do not ask counter-questions or ask the user for clarification; directly output the final result.
 
-【3. 输出格式强制标准化】
-- 文案类需求必须输出恰好3条独立分段，每条用"第一条/第二条/第三条"或"1./2./3."明确分隔
-- 每条文案必须口语通顺、完整、不少于30字
-- 禁止只输出半句、禁止输出无意义短语、禁止输出碎片化文字
-- 全程纯通顺简体中文，禁止中英混杂、禁止拼音、禁止符号乱入
-- 禁止使用引号包裹文案
+3. Output format standardization: For copywriting requests, output exactly 3 independent paragraphs, clearly separated by "1. / 2. / 3." Each paragraph must be fluent, complete, and at least 30 Chinese characters long. Do not output half-sentences, meaningless phrases, or fragmented text. Use fluent Simplified Chinese throughout. Do not mix English, do not use pinyin, and do not insert random symbols. Do not wrap the copy in quotation marks.
 
-【4. 截断兜底】
-- 余额不足或即将超长截断时，优先保证整段完整收尾，宁可缩短也不吐出半截
-- 如需分多条，每条必须是完整可读的句子
+4. Truncation safety: If the response is about to be truncated, prioritize completing the current paragraph gracefully. It is better to be shorter than to output a half-finished sentence.
 
-【5. 对话兜底】
-- 当用户问题过于模糊时，按最常见的合理场景输出，不要要求用户澄清`
+5. Conversation fallback: When the user's question is vague, respond based on the most common and reasonable scenario. Do not ask the user to clarify.`
 
     // 清洗历史消息：过滤过短/仅含无效字符的脏数据
     const cleanMessages = messages

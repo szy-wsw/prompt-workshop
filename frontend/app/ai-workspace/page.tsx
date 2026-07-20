@@ -93,22 +93,22 @@ export default function AIWorkspacePage() {
   }
 
   const fetchModels = async () => {
-    // 仅保留3款稳定、免费、低消耗模型，其余全部隐藏
+    // 仅保留3款经测试确认可用、稳定、低消耗的模型
     const defaultModels: Model[] = [
-      {
-        name: 'Qwen/Qwen2.5-72B-Instruct-128K',
-        displayName: '通义千问 2.5（长文本版）',
-        description: '长文本、文案生成稳定，免费额度充足'
-      },
       {
         name: 'Qwen/Qwen2.5-7B-Instruct',
         displayName: '通义千问 2.5（轻量版）',
-        description: '轻量快速，日常短句、多轮对话，计费极低'
+        description: '轻量快速，日常对话与文案生成，免费额度充足'
       },
       {
-        name: 'THUDM/glm-4-9b-chat',
-        displayName: '智谱 GLM-4（标准版）',
-        description: '逻辑规整能力强，不容易输出碎片乱码，容错高'
+        name: 'deepseek-ai/DeepSeek-V4-Flash',
+        displayName: 'DeepSeek V4 Flash',
+        description: 'Flash轻量版，响应快、逻辑清晰，免费可用'
+      },
+      {
+        name: 'THUDM/GLM-4-9B-0414',
+        displayName: '智谱 GLM-4 9B（0414版）',
+        description: '逻辑规整，中文理解能力强，输出稳定完整'
       }
     ]
     setModels(defaultModels)
