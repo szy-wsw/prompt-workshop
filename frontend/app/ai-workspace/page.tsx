@@ -209,7 +209,7 @@ export default function AIWorkspacePage() {
               const json = JSON.parse(line.slice(6))
               if (json.response) {
                 resultText += json.response
-                setTestResult(resultText)
+                setTestResult(cleanAIOutput(resultText))
               }
               if (json.done) {
                 streamDone = true
@@ -226,6 +226,17 @@ export default function AIWorkspacePage() {
     } finally {
       setTestLoading(false)
     }
+  }
+
+  const cleanAIOutput = (text: string): string => {
+    if (!text) return ''
+    let s = text
+    s = s.replace(/<think>[\s\S]*?<\/think>/gi, '')
+    s = s.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+    s = s.replace(/^#{1,6}\s*/gm, '')
+    s = s.replace(/^---+\s*$/gm, '')
+    s = s.replace(/\n{3,}/g, '\n\n')
+    return s.trim()
   }
 
   const handleChat = async () => {
@@ -289,11 +300,11 @@ export default function AIWorkspacePage() {
               const json = JSON.parse(line.slice(6))
               if (json.response) {
                 aiContent += json.response
-                const updatedMessages = [...newMessages, { role: 'assistant' as const, content: aiContent, timestamp: Date.now() }]
+                const updatedMessages = [...newMessages, { role: 'assistant' as const, content: cleanAIOutput(aiContent), timestamp: Date.now() }]
                 setMessages(updatedMessages)
               }
               if (json.done) {
-                const finalMessages = [...newMessages, { role: 'assistant' as const, content: aiContent, timestamp: Date.now() }]
+                const finalMessages = [...newMessages, { role: 'assistant' as const, content: cleanAIOutput(aiContent), timestamp: Date.now() }]
                 saveChatHistory(finalMessages)
                 streamDone = true
                 break
@@ -383,7 +394,7 @@ ${improvePrompt}
               }
               if (json.response) {
                 resultText += json.response
-                setImproveResult(resultText)
+                setImproveResult(cleanAIOutput(resultText))
               }
               if (json.done) {
                 streamDone = true

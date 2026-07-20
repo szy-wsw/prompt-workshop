@@ -59,6 +59,9 @@ export async function POST(req: Request) {
 
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || ''
 
+    const systemPrompt = '你是专业的文案助手。要求：1) 严禁输出任何思考过程、内心独白、计划、解释；2) 直接输出最终成品文案；3) 不要使用 ###、---、【】等分隔符堆砌；4) 输出一律用中文，不用混入英文乱码。'
+    const finalMessages = [{ role: 'system', content: systemPrompt }, ...messages]
+
     const sfRes = await fetch(`${AI_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -67,11 +70,11 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model,
-        messages,
+        messages: finalMessages,
         stream: true,
         max_tokens: 2048,
         temperature: 0.7,
-        ...(model.includes('Qwen') || model.includes('DeepSeek') || model.includes('GLM') ? { enable_thinking: false } : {}),
+        chat_template_kwargs: { enable_thinking: false },
       }),
     })
 
