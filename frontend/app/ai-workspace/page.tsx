@@ -92,11 +92,11 @@ export default function AIWorkspacePage() {
 
   const fetchModels = async () => {
     setModels([
-      { name: 'Qwen/Qwen2.5-7B-Instruct' },
-      { name: 'nex-agi/Nex-N2-Pro' },
-      { name: 'inclusionAI/Ling-flash-2.0' },
+      { name: 'mistralai/mistral-7b-instruct:free' },
+      { name: 'meta-llama/llama-3.1-8b-instruct:free' },
+      { name: 'google/gemma-2-9b-it:free' },
     ])
-    setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
+    setSelectedModel('mistralai/mistral-7b-instruct:free')
   }
 
   const fetchServerHistory = async () => {
@@ -475,7 +475,7 @@ ${improvePrompt}
             AI服务暂不可用
           </h3>
           <p style={{ color: palette.textSecondary }}>
-            请检查前端配置文件中SILICONFLOW_API_KEY是否正确设置
+            请检查前端配置文件中AI_API_KEY是否正确设置
           </p>
           <button className="btn-secondary" onClick={checkAiStatus} style={{ marginTop: 16 }}>
             🔄 重新检测

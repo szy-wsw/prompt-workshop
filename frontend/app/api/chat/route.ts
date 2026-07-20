@@ -1,4 +1,4 @@
-import { dbAdd, verifyAuth, errorResponse, handleOptions, SILICONFLOW_API_KEY, SILICONFLOW_BASE_URL, FREE_MODEL_ID } from '@/lib/supabase-server'
+import { dbAdd, verifyAuth, errorResponse, handleOptions, AI_API_KEY, AI_BASE_URL, FREE_MODEL_ID } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -41,8 +41,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    if (!SILICONFLOW_API_KEY) {
-      return errorResponse('AI服务未配置，请联系管理员设置 SILICONFLOW_API_KEY', 503)
+    if (!AI_API_KEY) {
+      return errorResponse('AI服务未配置，请联系管理员设置 AI_API_KEY', 503)
     }
 
     const body = await req.json()
@@ -59,10 +59,10 @@ export async function POST(req: Request) {
 
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || ''
 
-    const sfRes = await fetch(`${SILICONFLOW_BASE_URL}/chat/completions`, {
+    const sfRes = await fetch(`${AI_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${SILICONFLOW_API_KEY}`,
+        Authorization: `Bearer ${AI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

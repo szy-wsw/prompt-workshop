@@ -16,9 +16,10 @@ export async function GET(req: Request) {
   })
 
   const promptIds = collections.map((c: any) => c.prompt_id)
-  const prompts = promptIds.length > 0
-    ? await dbQuery('prompts', { visibility: 'public' }, {})
-    : []
+  let prompts: any[] = []
+  if (promptIds.length > 0) {
+    prompts = await dbQuery('prompts', { id: promptIds }, {})
+  }
 
   const result = collections.map((col: any) => {
     const prompt = prompts.find((p: any) => String(p.id) === String(col.prompt_id))

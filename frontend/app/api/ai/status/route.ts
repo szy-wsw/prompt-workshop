@@ -1,15 +1,15 @@
-import { SILICONFLOW_API_KEY, SILICONFLOW_BASE_URL, FREE_MODEL_ID, successResponse } from '@/lib/supabase-server'
+import { AI_API_KEY, AI_BASE_URL, FREE_MODEL_ID, successResponse } from '@/lib/supabase-server'
 
 export async function GET() {
-  if (!SILICONFLOW_API_KEY) {
-    return successResponse({ online: false, message: 'AI服务未配置，请设置 SILICONFLOW_API_KEY', models: [] })
+  if (!AI_API_KEY) {
+    return successResponse({ online: false, message: 'AI服务未配置，请设置 AI_API_KEY', models: [] })
   }
 
   try {
-    const res = await fetch(`${SILICONFLOW_BASE_URL}/models`, {
+    const res = await fetch(`${AI_BASE_URL}/models`, {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${SILICONFLOW_API_KEY}`,
+        Authorization: `Bearer ${AI_API_KEY}`,
         'Content-Type': 'application/json',
       },
     })
