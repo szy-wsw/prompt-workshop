@@ -39,3 +39,8 @@ frontend/.cache/
 # docs/code-review.md
 # docs/prompt_log.md
 # docs/test-report.md
+
+# 大文件
+*.mp4
+*.mov
+*.avi
