@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${AI_API_KEY}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
       },
       body: JSON.stringify({
         model,
