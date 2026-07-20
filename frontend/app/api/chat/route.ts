@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || ''
 
-    const systemPrompt = '你是一个专业的AI助手，请用中文直接回答用户问题。要求：1) 直接输出最终答案，不要输出思考过程；2) 输出干净通顺的中文，不要夹杂乱码、多余符号或英文碎片；3) 如果是文案类请求，分条输出，每条清晰完整。'
+    const systemPrompt = '你是一个专业的AI助手，请用中文直接回答用户问题。直接输出最终答案，不要输出思考过程。'
     const finalMessages = [{ role: 'system', content: systemPrompt }, ...messages]
 
     const sfRes = await fetch(`${AI_BASE_URL}/chat/completions`, {
@@ -90,8 +90,9 @@ export async function POST(req: Request) {
       async start(controller) {
         const reader = sfRes.body!.getReader()
         const decoder = new TextDecoder()
+        let streamDone = false
         try {
-          while (true) {
+          while (!streamDone) {
             const { done, value } = await reader.read()
             if (done) break
             const chunk = decoder.decode(value, { stream: true })
@@ -100,6 +101,7 @@ export async function POST(req: Request) {
               const jsonStr = line.slice(6).trim()
               if (jsonStr === '[DONE]') {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: '', done: true })}\n\n`))
+                streamDone = true
                 break
               }
               try {

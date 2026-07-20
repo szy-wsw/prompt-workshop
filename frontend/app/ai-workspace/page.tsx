@@ -91,12 +91,29 @@ export default function AIWorkspacePage() {
   }
 
   const fetchModels = async () => {
-    setModels([
-      { name: 'Qwen/Qwen2.5-7B-Instruct' },
-      { name: 'Qwen/Qwen2.5-14B-Instruct' },
-      { name: 'THUDM/GLM-4-9B-0414' },
-    ])
-    setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
+    try {
+      const res = await fetch('/api/ai/status')
+      const result = await res.json()
+      if (result.success && result.data?.models && result.data.models.length > 0) {
+        const modelList = result.data.models.map((m: string) => ({ name: m }))
+        setModels(modelList)
+        setSelectedModel(result.data.defaultModel || modelList[0]?.name || 'Qwen/Qwen2.5-7B-Instruct')
+      } else {
+        setModels([
+          { name: 'Qwen/Qwen2.5-7B-Instruct' },
+          { name: 'Qwen/Qwen2.5-14B-Instruct' },
+          { name: 'THUDM/GLM-4-9B-0414' },
+        ])
+        setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
+      }
+    } catch {
+      setModels([
+        { name: 'Qwen/Qwen2.5-7B-Instruct' },
+        { name: 'Qwen/Qwen2.5-14B-Instruct' },
+        { name: 'THUDM/GLM-4-9B-0414' },
+      ])
+      setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
+    }
   }
 
   const fetchServerHistory = async () => {
@@ -195,29 +212,31 @@ export default function AIWorkspacePage() {
 
       const decoder = new TextDecoder()
       let resultText = ''
+      let buffer = ''
 
-      let streamDone = false
-      while (!streamDone) {
+      while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n\n')
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const json = JSON.parse(line.slice(6))
-              if (json.response) {
-                resultText += json.response
-                setTestResult(cleanAIOutput(resultText))
-              }
-              if (json.done) {
-                streamDone = true
-                break
-              }
-            } catch {
-              continue
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data: ')) continue
+          try {
+            const json = JSON.parse(trimmed.slice(6))
+            if (json.error) {
+              showToast(json.error, 'error')
+              break
             }
+            if (json.response) {
+              resultText += json.response
+              setTestResult(cleanAIOutput(resultText))
+            }
+            if (json.done) break
+          } catch {
+            continue
           }
         }
       }
@@ -233,8 +252,6 @@ export default function AIWorkspacePage() {
     let s = text
     s = s.replace(/<think>[\s\S]*?<\/think>/gi, '')
     s = s.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
-    s = s.replace(/^#{1,6}\s*/gm, '')
-    s = s.replace(/^---+\s*$/gm, '')
     s = s.replace(/\n{3,}/g, '\n\n')
     return s.trim()
   }
@@ -286,32 +303,36 @@ export default function AIWorkspacePage() {
 
       const decoder = new TextDecoder()
       let aiContent = ''
+      let buffer = ''
 
-      let streamDone = false
-      while (!streamDone) {
+      while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n\n')
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const json = JSON.parse(line.slice(6))
-              if (json.response) {
-                aiContent += json.response
-                const updatedMessages = [...newMessages, { role: 'assistant' as const, content: cleanAIOutput(aiContent), timestamp: Date.now() }]
-                setMessages(updatedMessages)
-              }
-              if (json.done) {
-                const finalMessages = [...newMessages, { role: 'assistant' as const, content: cleanAIOutput(aiContent), timestamp: Date.now() }]
-                saveChatHistory(finalMessages)
-                streamDone = true
-                break
-              }
-            } catch {
-              continue
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data: ')) continue
+          try {
+            const json = JSON.parse(trimmed.slice(6))
+            if (json.error) {
+              showToast(json.error, 'error')
+              break
             }
+            if (json.response) {
+              aiContent += json.response
+              const updatedMessages = [...newMessages, { role: 'assistant' as const, content: cleanAIOutput(aiContent), timestamp: Date.now() }]
+              setMessages(updatedMessages)
+            }
+            if (json.done) {
+              const finalMessages = [...newMessages, { role: 'assistant' as const, content: cleanAIOutput(aiContent), timestamp: Date.now() }]
+              saveChatHistory(finalMessages)
+              break
+            }
+          } catch {
+            continue
           }
         }
       }
@@ -375,34 +396,31 @@ ${improvePrompt}
 
       const decoder = new TextDecoder()
       let resultText = ''
-      let streamDone = false
+      let buffer = ''
 
-      while (!streamDone) {
+      while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n\n')
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const json = JSON.parse(line.slice(6))
-              if (json.error) {
-                showToast(json.error, 'error')
-                streamDone = true
-                break
-              }
-              if (json.response) {
-                resultText += json.response
-                setImproveResult(cleanAIOutput(resultText))
-              }
-              if (json.done) {
-                streamDone = true
-                break
-              }
-            } catch {
-              continue
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data: ')) continue
+          try {
+            const json = JSON.parse(trimmed.slice(6))
+            if (json.error) {
+              showToast(json.error, 'error')
+              break
             }
+            if (json.response) {
+              resultText += json.response
+              setImproveResult(cleanAIOutput(resultText))
+            }
+            if (json.done) break
+          } catch {
+            continue
           }
         }
       }
