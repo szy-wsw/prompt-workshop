@@ -92,11 +92,11 @@ export default function AIWorkspacePage() {
 
   const fetchModels = async () => {
     setModels([
-      { name: 'mistralai/mistral-7b-instruct:free' },
-      { name: 'meta-llama/llama-3.1-8b-instruct:free' },
-      { name: 'google/gemma-2-9b-it:free' },
+      { name: 'Qwen/Qwen2.5-7B-Instruct' },
+      { name: 'deepseek-ai/DeepSeek-V2.5' },
+      { name: 'THUDM/GLM-4-9B-0414' },
     ])
-    setSelectedModel('mistralai/mistral-7b-instruct:free')
+    setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
   }
 
   const fetchServerHistory = async () => {
