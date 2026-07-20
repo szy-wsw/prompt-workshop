@@ -99,8 +99,8 @@ JWT_SECRET=your-jwt-secret-key
 # 硅基流动AI服务API密钥
 SILICONFLOW_API_KEY=your-siliconflow-api-key
 
-# AI对话模型
-FREE_MODEL_ID=Qwen/Qwen2.5-7B-Instruct
+# AI对话模型（推荐使用 deepseek-ai/DeepSeek-V4-Flash）
+FREE_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash
 
 # 应用URL
 NEXT_PUBLIC_APP_URL=https://szy050604.top
@@ -249,8 +249,9 @@ npm run dev
 
 | 接口 | 方法 | 路径 | 描述 |
 |------|------|------|------|
-| AI对话 | POST | /api/chat | 与AI进行流式对话 |
+| AI对话 | POST | /api/chat | 与AI进行对话（非流式响应） |
 | 获取聊天历史 | GET | /api/chat-history | 获取聊天历史记录 |
+| AI服务状态 | GET | /api/ai/status | 获取AI服务状态和模型列表 |
 
 ### 用户接口
 
@@ -290,6 +291,12 @@ npm run dev
 - 编写数据库设计文档
 - 进行功能测试验证
 - 生成 AI Code Review 报告
+
+### 阶段五：AI对话修复
+- 修复 AI 对话输出乱码问题
+- 将流式响应改为非流式响应（Vercel代理导致流式响应损坏）
+- 移除 system prompt（模型处理中文特殊符号时出现问题）
+- 精简模型列表为3款稳定免费模型
 
 ## Prompt 日志
 
