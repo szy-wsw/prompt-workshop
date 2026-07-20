@@ -1,19 +1,26 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-if (!supabaseUrl || !serviceRoleKey) {
-  console.warn('[Supabase Admin] 缺少环境变量 NEXT_PUBLIC_SUPABASE_URL 或 SUPABASE_SERVICE_ROLE_KEY')
+let adminClient: SupabaseClient | null = null
+
+if (supabaseUrl && serviceRoleKey) {
+  adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+} else {
+  console.error('[Supabase Admin] 环境变量缺失！请检查 NEXT_PUBLIC_SUPABASE_URL')
 }
 
-export const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
-
-export function getAdminClient() {
+export function getAdminClient(): SupabaseClient {
+  if (!adminClient) {
+    throw new Error('Supabase admin client not initialized. Check environment variables')
+  }
   return adminClient
 }
+
+export { adminClient }
