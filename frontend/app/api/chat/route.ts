@@ -71,6 +71,7 @@ export async function POST(req: Request) {
         stream: true,
         max_tokens: 2048,
         temperature: 0.7,
+        ...(model.includes('Qwen') || model.includes('DeepSeek') || model.includes('GLM') ? { enable_thinking: false } : {}),
       }),
     })
 
@@ -103,7 +104,7 @@ export async function POST(req: Request) {
                 const parsed = JSON.parse(jsonStr)
                 const delta = parsed?.choices?.[0]?.delta
                 const content = delta?.content ?? ''
-                if (content) {
+                if (content && typeof content === 'string' && content.length > 0) {
                   fullResponse += content
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: content, done: false })}\n\n`))
                 }
