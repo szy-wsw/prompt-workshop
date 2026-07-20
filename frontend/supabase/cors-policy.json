@@ -1,6 +1,6 @@
 {
   "$schema": "https://supabase.com/schema/storage-cors.json",
-  "description": "Prompt Workshop - avatars 存储桶 CORS 策略（仅适配 localhost 本地开发）",
+  "description": "Prompt Workshop - avatars 存储桶 CORS 策略（适配线上域名 szy050604.top）",
   "buckets": [
     {
       "bucket_id": "avatars",
@@ -8,7 +8,9 @@
         {
           "allowed_origins": [
             "http://localhost:3000",
-            "http://127.0.0.1:3000"
+            "http://127.0.0.1:3000",
+            "https://szy050604.top",
+            "https://www.szy050604.top"
           ],
           "allowed_methods": [
             "GET",
@@ -18,9 +20,7 @@
             "HEAD"
           ],
           "allowed_headers": [
-            "Content-Type",
-            "Authorization",
-            "x-upsert"
+            "*"
           ],
           "exposed_headers": [
             "Content-Length",
@@ -31,5 +31,5 @@
       ]
     }
   ],
-  "note": "线上域名 CORS 配置待自定义域名完成实名认证与 DNS 解析后补充"
+  "note": "线上域名 CORS 已配置完成，支持 https://szy050604.top 和 https://www.szy050604.top"
 }

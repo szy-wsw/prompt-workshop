@@ -75,12 +75,14 @@ export default function LoginPage() {
               邮箱
             </label>
             <input
-              type="email"
+              type="text"
+              inputMode="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="请输入邮箱"
               required
               disabled={loading}
+              autoComplete="email"
               style={{
                 width: '100%',
                 padding: '12px 16px',
