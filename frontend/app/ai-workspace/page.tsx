@@ -204,41 +204,11 @@ export default function AIWorkspacePage() {
         return
       }
 
-      const reader = response.body?.getReader()
-      if (!reader) {
-        setTestLoading(false)
-        return
-      }
-
-      const decoder = new TextDecoder()
-      let resultText = ''
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n\n')
-        buffer = lines.pop() || ''
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed.startsWith('data: ')) continue
-          try {
-            const json = JSON.parse(trimmed.slice(6))
-            if (json.error) {
-              showToast(json.error, 'error')
-              break
-            }
-            if (json.response) {
-              resultText += json.response
-              setTestResult(cleanAIOutput(resultText))
-            }
-            if (json.done) break
-          } catch {
-            continue
-          }
-        }
+      const result = await response.json()
+      if (result.success && result.data?.response) {
+        setTestResult(cleanAIOutput(result.data.response))
+      } else {
+        showToast(result.message || '无响应内容', 'error')
       }
     } catch (e: any) {
       showToast(e.message || '网络错误', 'error')
@@ -295,46 +265,14 @@ export default function AIWorkspacePage() {
         return
       }
 
-      const reader = response.body?.getReader()
-      if (!reader) {
-        setChatLoading(false)
-        return
-      }
-
-      const decoder = new TextDecoder()
-      let aiContent = ''
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n\n')
-        buffer = lines.pop() || ''
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed.startsWith('data: ')) continue
-          try {
-            const json = JSON.parse(trimmed.slice(6))
-            if (json.error) {
-              showToast(json.error, 'error')
-              break
-            }
-            if (json.response) {
-              aiContent += json.response
-              const updatedMessages = [...newMessages, { role: 'assistant' as const, content: cleanAIOutput(aiContent), timestamp: Date.now() }]
-              setMessages(updatedMessages)
-            }
-            if (json.done) {
-              const finalMessages = [...newMessages, { role: 'assistant' as const, content: cleanAIOutput(aiContent), timestamp: Date.now() }]
-              saveChatHistory(finalMessages)
-              break
-            }
-          } catch {
-            continue
-          }
-        }
+      const result = await response.json()
+      if (result.success && result.data?.response) {
+        const aiContent = result.data.response
+        const finalMessages = [...newMessages, { role: 'assistant' as const, content: cleanAIOutput(aiContent), timestamp: Date.now() }]
+        setMessages(finalMessages)
+        saveChatHistory(finalMessages)
+      } else {
+        showToast(result.message || '无响应内容', 'error')
       }
     } catch (e: any) {
       showToast(e.message || '网络错误', 'error')

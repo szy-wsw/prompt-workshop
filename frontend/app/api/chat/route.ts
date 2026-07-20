@@ -1,4 +1,4 @@
-import { dbAdd, verifyAuth, errorResponse, handleOptions, AI_API_KEY, AI_BASE_URL, FREE_MODEL_ID } from '@/lib/supabase-server'
+import { dbAdd, verifyAuth, errorResponse, handleOptions, AI_API_KEY, AI_BASE_URL, FREE_MODEL_ID, successResponse } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model,
         messages: finalMessages,
-        stream: true,
+        stream: false,
         max_tokens: 2048,
         temperature: 0.3,
         top_p: 0.9,
@@ -84,73 +84,26 @@ export async function POST(req: Request) {
       return errorResponse(`AI服务异常(${sfRes.status}): ${errText.slice(0, 150)}`, 502)
     }
 
-    let fullResponse = ''
-    const encoder = new TextEncoder()
+    const result = await sfRes.json()
+    const fullResponse = result?.choices?.[0]?.message?.content || ''
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = sfRes.body!.getReader()
-        const decoder = new TextDecoder()
-        let streamDone = false
-        try {
-          while (!streamDone) {
-            const { done, value } = await reader.read()
-            if (done) break
-            const chunk = decoder.decode(value, { stream: true })
-            for (const line of chunk.split('\n')) {
-              if (!line.startsWith('data: ')) continue
-              const jsonStr = line.slice(6).trim()
-              if (jsonStr === '[DONE]') {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: '', done: true })}\n\n`))
-                streamDone = true
-                break
-              }
-              try {
-                const parsed = JSON.parse(jsonStr)
-                const delta = parsed?.choices?.[0]?.delta
-                if (!delta) continue
-                // 处理 content，某些模型可能返回 reasoning_content
-                let content = delta.content
-                if (content === null || content === undefined) {
-                  content = delta.reasoning_content
-                }
-                if (typeof content === 'string' && content.length > 0) {
-                  fullResponse += content
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: content, done: false })}
+    if (saveHistory && fullResponse && userId) {
+      try {
+        const now = new Date().toISOString()
+        await dbAdd('chat_history', {
+          user_id: userId,
+          conversation_id: conversationId,
+          user_message: lastUserMessage,
+          ai_response: fullResponse,
+          model,
+          created_at: now,
+        })
+      } catch (saveErr) {
+        console.error('Save chat history error:', saveErr)
+      }
+    }
 
-`))
-                }
-              } catch { /* skip */ }
-            }
-          }
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e)
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg, done: true })}\n\n`))
-        } finally {
-          controller.close()
-          
-          if (saveHistory && fullResponse && userId) {
-            try {
-              const now = new Date().toISOString()
-              await dbAdd('chat_history', {
-                user_id: userId,
-                conversation_id: conversationId,
-                user_message: lastUserMessage,
-                ai_response: fullResponse,
-                model,
-                created_at: now,
-              })
-            } catch (saveErr) {
-              console.error('Save chat history error:', saveErr)
-            }
-          }
-        }
-      },
-    })
-
-    return new Response(stream, {
-      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
-    })
+    return successResponse({ response: fullResponse, done: true })
   } catch (e) {
     return errorResponse(`AI对话失败: ${e instanceof Error ? e.message : '未知错误'}`)
   }
