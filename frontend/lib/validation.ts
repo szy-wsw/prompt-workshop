@@ -66,7 +66,7 @@ export function validateAndRespond<T = any>(
     if (result && result.errors.length > 0) {
       resolve(errorResponse(result.errors.join(', '), 400))
     } else {
-      resolve({ data: result?.data })
+      resolve({ data: result?.data ?? ({} as T) })
     }
   })
 }

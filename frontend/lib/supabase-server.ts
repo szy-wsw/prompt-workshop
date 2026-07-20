@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 import { getAdminClient } from './supabase/admin'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prompt-workshop-jwt-secret-key'
+const JWT_SECRET = process.env.JWT_SECRET || 'prompt-workshop-jwt-secret-change-me'
 
 export const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || ''
 export const SILICONFLOW_BASE_URL = 'https://api.siliconflow.cn/v1'

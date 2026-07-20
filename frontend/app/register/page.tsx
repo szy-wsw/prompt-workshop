@@ -121,7 +121,6 @@ export default function RegisterPage() {
             </label>
             <input
               type="text"
-              inputMode="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="请输入邮箱"
