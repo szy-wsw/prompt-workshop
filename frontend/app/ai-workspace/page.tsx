@@ -92,11 +92,11 @@ export default function AIWorkspacePage() {
 
   const fetchModels = async () => {
     setModels([
+      { name: 'Qwen/Qwen3-8B' },
       { name: 'Qwen/Qwen2.5-7B-Instruct' },
-      { name: 'deepseek-ai/DeepSeek-V2.5' },
-      { name: 'THUDM/GLM-4-9B-0414' },
+      { name: 'internlm/internlm2_5-7b-chat' },
     ])
-    setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
+    setSelectedModel('Qwen/Qwen3-8B')
   }
 
   const fetchServerHistory = async () => {

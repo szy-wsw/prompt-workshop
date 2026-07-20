@@ -103,8 +103,10 @@ export async function POST(req: Request) {
               try {
                 const parsed = JSON.parse(jsonStr)
                 const delta = parsed?.choices?.[0]?.delta
-                const content = delta?.content ?? ''
-                if (content && typeof content === 'string' && content.length > 0) {
+                if (!delta) continue
+                // 只推送真正的 content，忽略 reasoning_content
+                const content = delta.content
+                if (typeof content === 'string' && content.length > 0) {
                   fullResponse += content
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: content, done: false })}\n\n`))
                 }
