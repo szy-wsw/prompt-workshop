@@ -71,15 +71,11 @@ export async function POST(req: Request) {
 
 5. Conversation fallback: When the user's question is vague, respond based on the most common and reasonable scenario. Do not ask the user to clarify.`
 
-    // 清洗历史消息：过滤过短/仅含无效字符的脏数据
-    const cleanMessages = messages
-      .filter((m: any) => m && m.content && String(m.content).trim().length > 0)
-      .map((m: any) => ({ role: m.role, content: String(m.content).trim() }))
-      .slice(-20) // 最多保留最近20条对话
+    // 只保留最新的用户消息，避免历史乱码污染模型输出
+    const latestUserMessage = messages.filter((m: any) => m.role === 'user').pop()
+    const cleanMessages = latestUserMessage ? [{ role: 'user', content: String(latestUserMessage.content).trim() }] : []
 
-    // 检查 messages 中是否已有 system 消息，避免重复
-    const hasSystem = cleanMessages.some((m: any) => m.role === 'system')
-    const finalMessages = hasSystem ? cleanMessages : [{ role: 'system', content: systemPrompt }, ...cleanMessages]
+    const finalMessages = [{ role: 'system', content: systemPrompt }, ...cleanMessages]
 
     const sfRes = await fetch(`${AI_BASE_URL}/chat/completions`, {
       method: 'POST',
