@@ -31,11 +31,4 @@ frontend/node_modules/
 frontend/out/
 frontend/.cache/
 
-# 不上传的文档（已推送，保留记录）
-# api-reference.md
-# code-review.md
-# prompt_log.md
-# docs/api-reference.md
-# docs/code-review.md
-# docs/prompt_log.md
-# docs/test-report.md
+视频演示.mp4
