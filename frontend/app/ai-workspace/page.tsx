@@ -22,6 +22,8 @@ interface ChatHistoryItem {
 
 interface Model {
   name: string
+  displayName: string
+  description: string
   size?: number
   modified_at?: string
 }
@@ -91,29 +93,27 @@ export default function AIWorkspacePage() {
   }
 
   const fetchModels = async () => {
-    try {
-      const res = await fetch('/api/ai/status')
-      const result = await res.json()
-      if (result.success && result.data?.models && result.data.models.length > 0) {
-        const modelList = result.data.models.map((m: string) => ({ name: m }))
-        setModels(modelList)
-        setSelectedModel(result.data.defaultModel || modelList[0]?.name || 'Qwen/Qwen2.5-7B-Instruct')
-      } else {
-        setModels([
-          { name: 'Qwen/Qwen2.5-7B-Instruct' },
-          { name: 'Qwen/Qwen2.5-14B-Instruct' },
-          { name: 'THUDM/GLM-4-9B-0414' },
-        ])
-        setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
+    // 仅保留3款稳定、免费、低消耗模型，其余全部隐藏
+    const defaultModels: Model[] = [
+      {
+        name: 'Qwen/Qwen2.5-72B-Instruct-128K',
+        displayName: '通义千问 2.5（长文本版）',
+        description: '长文本、文案生成稳定，免费额度充足'
+      },
+      {
+        name: 'Qwen/Qwen2.5-7B-Instruct',
+        displayName: '通义千问 2.5（轻量版）',
+        description: '轻量快速，日常短句、多轮对话，计费极低'
+      },
+      {
+        name: 'THUDM/glm-4-9b-chat',
+        displayName: '智谱 GLM-4（标准版）',
+        description: '逻辑规整能力强，不容易输出碎片乱码，容错高'
       }
-    } catch {
-      setModels([
-        { name: 'Qwen/Qwen2.5-7B-Instruct' },
-        { name: 'Qwen/Qwen2.5-14B-Instruct' },
-        { name: 'THUDM/GLM-4-9B-0414' },
-      ])
-      setSelectedModel('Qwen/Qwen2.5-7B-Instruct')
-    }
+    ]
+    setModels(defaultModels)
+    setSelectedModel(defaultModels[0].name)
+    setAiOnline(true)
   }
 
   const fetchServerHistory = async () => {
@@ -562,7 +562,9 @@ ${improvePrompt}
               <option value="">正在加载模型列表...</option>
             ) : (
               models.map(m => (
-                <option key={m.name} value={m.name}>{m.name}</option>
+                <option key={m.name} value={m.name}>
+                  {m.displayName} — {m.description}
+                </option>
               ))
             )}
           </select>
